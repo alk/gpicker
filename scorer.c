@@ -6,6 +6,7 @@
 
 #include "scorer.h"
 
+#define SUPER_PROPER_WORD_START 1000000
 #define PROPER_WORD_START 501
 #define WILD_WORD_START 1
 #define ADJACENT 1000
@@ -117,11 +118,11 @@ int score_string(const char *string,
 			amount = 0;
 			this_score = prev_score;
 			prev_pattern = translated_pattern[k-1];
-			if (!delimiter_p(prev_pattern)) {
-				if (at_word_start)
-					amount = start_of_pattern_word[k] ? PROPER_WORD_START : WILD_WORD_START;
-				this_score = prev_score + amount;
-			}
+			if (at_word_start)
+				amount = start_of_pattern_word[k] ?
+					delimiter_p(prev_pattern) ? SUPER_PROPER_WORD_START : PROPER_WORD_START 
+					: WILD_WORD_START;
+			this_score = prev_score + amount;
 
 			if (state[i-1][k-1].this_score >= 0 && !delimiter_p(pat_ch)) {
 				int candidate = state[i-1][k-1].this_score + ADJACENT;

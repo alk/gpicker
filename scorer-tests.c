@@ -40,8 +40,8 @@ END_TEST
 START_TEST(test_char_after_delimiter_handling)
 {
 	/* char right after delimiter must match start of word */
-	assert_scores(2501, "some_owo-word", "s-wo", M(0,4,9,10));
-//	assert_scores(2501, "some_owoWord", "s-wo", M(0,4,9,10));
+	assert_scores(1001501, "some_owo-word", "s-wo", M(0,4,9,10));
+//	assert_scores(1001501, "some_owoWord", "s-wo", M(0,4,9,10));
 }
 END_TEST
 
@@ -61,9 +61,9 @@ END_TEST
 START_TEST(test_slash_handling)
 {
 	/* 'ar' in pattern should not match chars with '/' between them */
-//	assert_scores(1502, "activerecord/lib/active_record/base.rb", "ar/b", M(17,24,30,31));
+//	assert_scores(1000502, "activerecord/lib/active_record/base.rb", "ar/b", M(17,24,30,31));
 	/* '/' works */
-	assert_scores(1502, "activerecord/lib/octive_record/base.rb", "ar/b", M(0,24,30,31));
+	assert_scores(1000502, "activerecord/lib/octive_record/base.rb", "ar/b", M(0,24,30,31));
 }
 END_TEST
 
@@ -71,16 +71,15 @@ Suite *scorer_suite (void)
 {
 	Suite *s = suite_create ("Scorer");
 
-	/* Core test case */
-	TCase *tc_core = tcase_create ("Core");
+#define T(name) do { TCase *tc = tcase_create(#name); tcase_add_test(tc, name); suite_add_tcase(s, tc);} while (0)
 
-	tcase_add_test (tc_core, test_char_after_delimiter_handling);
-	tcase_add_test (tc_core, test_capital_pattern_chars_work);
-	tcase_add_test (tc_core, test_single_char_matches_work);
-	tcase_add_test (tc_core, test_slash_handling);
+	T(test_char_after_delimiter_handling);
+	T(test_capital_pattern_chars_work);
+	T(test_single_char_matches_work);
+	T(test_slash_handling);
 
-	suite_add_tcase (s, tc_core);
 	return s;
+#undef T
 }
 
 int main(void)
