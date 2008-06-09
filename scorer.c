@@ -12,16 +12,15 @@
 
 #define max(a,b) ({__typeof__ (a) ____a = (a); __typeof__ (b) ____b = (b); ____b > ____a ? ____b : ____a; })
 
-__attribute__((format (printf, 1, 2))) __attribute__((unused))
-static inline
-void empty_printf(char *format, ...)
-{
-}
-
 #if 0
 #define dprintf(...) printf(__VA_ARGS__)
 #else
-#define dprintf(...) empty_printf(__VA_ARGS__)
+__attribute__((format (printf, 1, 2))) __attribute__((unused))
+static inline
+void ____empty_printf(char *format, ...)
+{
+}
+#define dprintf(...) ____empty_printf(__VA_ARGS__)
 #endif
 
 static inline
