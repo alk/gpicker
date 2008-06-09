@@ -38,6 +38,8 @@ void add_filename(char *p, int dirlength)
 
 	if (nfiles == files_avail) {
 		int new_avail = files_avail * 2;
+		if (!new_avail)
+			new_avail = 512;
 		files = realloc(files, sizeof(struct filename) * new_avail);
 		if (!files)
 			memory_exhausted();
@@ -74,7 +76,8 @@ char *input_names(int fd, char **endp)
 		}
 		filled += readen;
 		if (bufsize - filled < MIN_BUFSIZE_FREE) {
-			buf = realloc(buf, filled + MIN_BUFSIZE_FREE);
+			bufsize = filled + MIN_BUFSIZE_FREE;
+			buf = realloc(buf, bufsize);
 			if (!buf)
 				memory_exhausted();
 		}
@@ -112,7 +115,12 @@ void setup_data(void)
 {
 	list_store = gtk_list_store_new(1, G_TYPE_STRING);
 	gtk_tree_view_set_model(tree_view, GTK_TREE_MODEL(list_store));
-	read_filenames(0);
+
+	{
+		FILE *pipe = popen("find /root/src/altoros/phase1 -type f -print0","r");
+		read_filenames(fileno(pipe));
+		fclose(pipe);
+	}
 }
 
 static
