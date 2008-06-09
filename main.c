@@ -93,6 +93,12 @@ char *input_names(int fd, char **endp)
 }
 
 static
+int filename_compare(const struct filename *a, const struct filename *b)
+{
+	return strcmp(a->p, b->p);
+}
+
+static
 void read_filenames(int fd)
 {
 	char *endp;
@@ -108,6 +114,44 @@ void read_filenames(int fd)
 				dirlength = p - start;
 		add_filename(start, dirlength);
 	}
+
+	qsort(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare);
+}
+
+static
+void cell_data_func(GtkTreeViewColumn *col,
+		    GtkCellRenderer *_renderer,
+		    GtkTreeModel *model,
+		    GtkTreeIter *iter,
+		    gpointer dummy)
+{
+	GtkCellRendererText *renderer = GTK_CELL_RENDERER_TEXT(_renderer);
+	char *text=0;
+	gtk_tree_model_get(model, iter, 0, &text, -1);
+	if (text) {
+		g_object_set(G_OBJECT(renderer),
+			     "text", text,
+			     0);
+	}
+	free(text);
+}
+
+static
+void setup_column(void)
+{
+	GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
+	GtkTreeViewColumn *col;
+	g_object_set(G_OBJECT(renderer),
+		     "ellipsize", PANGO_ELLIPSIZE_START,
+		     "alignment", PANGO_ALIGN_RIGHT,
+		     0);
+
+	col = gtk_tree_view_column_new_with_attributes("filename", renderer, NULL);
+
+	gtk_tree_view_column_set_cell_data_func(col, renderer, cell_data_func, 0, 0);
+	gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
+
+	gtk_tree_view_append_column(tree_view, col);
 }
 
 static
@@ -121,6 +165,19 @@ void setup_data(void)
 		read_filenames(fileno(pipe));
 		fclose(pipe);
 	}
+
+	{
+		int i;
+		GtkTreeIter iter;
+		for (i=0;i<nfiles;i++) {
+			gtk_list_store_append(list_store, &iter);
+			gtk_list_store_set(list_store, &iter,
+					   0, files[i].p,
+					   -1);
+		}
+	}
+
+	setup_column();
 }
 
 static
