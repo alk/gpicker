@@ -3,18 +3,116 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 #include <glade/glade.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 
-GladeXML *glade_ui;
-GtkWindow *top_window;
-GtkEntry *name_entry;
-GtkTreeView *tree_view;
-GtkListStore *list_store;
+struct filename {
+	char *p;
+	int dirlength;
+};
+
+static GladeXML *glade_ui;
+static GtkWindow *top_window;
+static GtkEntry *name_entry;
+static GtkTreeView *tree_view;
+static GtkListStore *list_store;
+
+static int files_avail;
+static int nfiles;
+static struct filename *files;
+
+__attribute__((noreturn))
+static
+void memory_exhausted(void)
+{
+	fputs("memory exhausted", stderr);
+	abort();
+}
+
+static
+void add_filename(char *p, int dirlength)
+{
+	struct filename *last;
+
+	if (nfiles == files_avail) {
+		int new_avail = files_avail * 2;
+		files = realloc(files, sizeof(struct filename) * new_avail);
+		if (!files)
+			memory_exhausted();
+		files_avail = new_avail;
+	}
+
+	last = files + nfiles++;
+	last->p = p;
+	last->dirlength = dirlength;
+}
+
+#define INIT_BUFSIZE (128*1024)
+#define MIN_BUFSIZE_FREE 32768
+
+static
+char *input_names(int fd, char **endp)
+{
+	int bufsize = INIT_BUFSIZE;
+	char *buf = malloc(bufsize);
+	int filled = 0;
+
+	if (!buf)
+		memory_exhausted();
+
+	do {
+		int readen = read(fd, buf+filled, bufsize-filled);
+		if (readen == 0)
+			break;
+		else if (readen < 0) {
+			if (errno == EINTR)
+				continue;
+			perror("read_names");
+			break;
+		}
+		filled += readen;
+		if (bufsize - filled < MIN_BUFSIZE_FREE) {
+			buf = realloc(buf, filled + MIN_BUFSIZE_FREE);
+			if (!buf)
+				memory_exhausted();
+		}
+	} while (1);
+	if (filled && buf[filled-1])
+		filled++;
+	buf = realloc(buf, filled);
+	if (!buf)
+		memory_exhausted();
+	buf[filled-1] = 0;
+	*endp = buf+filled;
+	return buf;
+}
+
+static
+void read_filenames(int fd)
+{
+	char *endp;
+	char *buf = input_names(fd, &endp);
+	char *p = buf;
+
+	while (p < endp) {
+		int dirlength = 0;
+		char *start = p;
+		char ch;
+		while ((ch = *p++))
+			if (ch == '/')
+				dirlength = p - start;
+		add_filename(start, dirlength);
+	}
+}
 
 static
 void setup_data(void)
 {
 	list_store = gtk_list_store_new(1, G_TYPE_STRING);
 	gtk_tree_view_set_model(tree_view, GTK_TREE_MODEL(list_store));
+	read_filenames(0);
 }
 
 static
