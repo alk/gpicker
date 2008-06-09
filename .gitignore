@@ -11,3 +11,4 @@ depcomp
 Makefile
 Makefile.in
 aclocal.m4
+scorer-tests
