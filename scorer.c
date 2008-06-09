@@ -6,10 +6,9 @@
 
 #include "scorer.h"
 
-#define SUPER_PROPER_WORD_START 1000000
-#define PROPER_WORD_START 501
-#define WILD_WORD_START 1
-#define ADJACENT 1000
+#define PROPER_WORD_START 0x100000
+#define WILD_WORD_START 0x201
+#define ADJACENT 0x400
 
 #define max(a,b) ({__typeof__ (a) ____a = (a); __typeof__ (b) ____b = (b); ____b > ____a ? ____b : ____a; })
 
@@ -116,12 +115,9 @@ int score_string(const char *string,
 			if (prev_score < 0)
 				goto cont;
 			amount = 0;
-			this_score = prev_score;
 			prev_pattern = translated_pattern[k-1];
 			if (at_word_start)
-				amount = start_of_pattern_word[k] ?
-					delimiter_p(prev_pattern) ? SUPER_PROPER_WORD_START : PROPER_WORD_START 
-					: WILD_WORD_START;
+				amount = start_of_pattern_word[k] ? PROPER_WORD_START : WILD_WORD_START;
 			this_score = prev_score + amount;
 
 			if (state[i-1][k-1].this_score >= 0 && !delimiter_p(pat_ch)) {
