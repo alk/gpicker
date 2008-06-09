@@ -34,13 +34,17 @@ char normalize_char(char ch, unsigned *is_delimiter)
 	return ch;
 }
 
-int score_string(char *string, char *pattern, const unsigned string_length, unsigned* match)
+int score_string(const char *string,
+		 const struct scorer_query *query,
+		 const unsigned string_length,
+		 unsigned* match)
 {
 	struct position {
 		int this_score;
 		int score;
 		int amount;
 	};
+	const char *pattern = query->pattern;
 	const unsigned pat_length = strlen(pattern);
 	struct position state[string_length][pat_length];
 	unsigned start_of_pattern_word[pat_length];
@@ -147,8 +151,9 @@ int score_string(char *string, char *pattern, const unsigned string_length, unsi
 	return score;
 }
 
-int score_simple_string(char *string, char *pattern, unsigned *match)
+int score_simple_string(const char *string, const char *pattern, unsigned *match)
 {
+	struct scorer_query qry = {.pattern = pattern};
 	unsigned string_length = strlen(string);
-	return score_string(string, pattern, string_length, match);
+	return score_string(string, &qry, string_length, match);
 }
