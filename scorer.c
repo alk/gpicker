@@ -23,14 +23,20 @@ void ____empty_printf(char *format, ...)
 #define dprintf(...) ____empty_printf(__VA_ARGS__)
 #endif
 
-static inline
+static
+int delimiter_p(char ch)
+{
+	return (ch == '.' || ch == '_' || ch == '/');
+}
+
+static
 char normalize_char(char ch, unsigned *is_delimiter)
 {
 	ch = tolower(ch);
 	if (ch == '-')
 		ch = '_';
 	if (is_delimiter)
-		*is_delimiter = (ch == '.' || ch == '_' || ch == '/');
+		*is_delimiter = delimiter_p(ch);
 	return ch;
 }
 
@@ -109,15 +115,15 @@ int score_string(const char *string,
 			if (prev_score < 0)
 				goto cont;
 			amount = 0;
-			this_score = -1;
+			this_score = prev_score;
 			prev_pattern = translated_pattern[k-1];
-			if (prev_pattern != '_' && prev_pattern != '.' && prev_pattern != '/') {
+			if (!delimiter_p(prev_pattern)) {
 				if (at_word_start)
 					amount = start_of_pattern_word[k] ? PROPER_WORD_START : WILD_WORD_START;
 				this_score = prev_score + amount;
 			}
 
-			if (state[i-1][k-1].this_score >= 0 && pat_ch != '_' && pat_ch != '.' && pat_ch != '/') {
+			if (state[i-1][k-1].this_score >= 0 && !delimiter_p(pat_ch)) {
 				int candidate = state[i-1][k-1].this_score + ADJACENT;
 				if (candidate > this_score)
 					this_score = candidate, amount = ADJACENT;
