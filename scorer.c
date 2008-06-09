@@ -45,7 +45,7 @@ int score_string(char *string, char *pattern, const unsigned string_length, unsi
 	const unsigned pat_length = strlen(pattern);
 	struct position state[string_length][pat_length];
 	unsigned start_of_pattern_word[pat_length];
-	char translated_pattern[pat_length+1];
+	char translated_pattern[pat_length];
 	unsigned i;
 	unsigned k;
 	unsigned previous_delimiter;
