@@ -23,13 +23,13 @@ void ____empty_printf(char *format, ...)
 #define dprintf(...) ____empty_printf(__VA_ARGS__)
 #endif
 
-static
+static inline
 int delimiter_p(char ch)
 {
 	return (ch == '.' || ch == '_' || ch == '/');
 }
 
-static
+static inline
 char normalize_char(char ch, unsigned *is_delimiter)
 {
 	ch = tolower(ch);
@@ -39,6 +39,8 @@ char normalize_char(char ch, unsigned *is_delimiter)
 		*is_delimiter = delimiter_p(ch);
 	return ch;
 }
+
+#define MAX_PAT_LENGTH 32
 
 int score_string(const char *string,
 		 const struct scorer_query *query,
@@ -52,7 +54,7 @@ int score_string(const char *string,
 	};
 	const char *pattern = query->pattern;
 	const unsigned pat_length = strlen(pattern);
-	struct position state[string_length][pat_length];
+	struct position state[string_length][MAX_PAT_LENGTH];
 	unsigned start_of_pattern_word[pat_length];
 	char translated_pattern[pat_length];
 	unsigned i;
@@ -60,14 +62,12 @@ int score_string(const char *string,
 	unsigned previous_delimiter;
 	int score;
 
-	if (pat_length == 0)
+	if (pat_length == 0 || pat_length > MAX_PAT_LENGTH)
 		return 0;
 
 	dprintf("scoring string '%.*s' for pattern '%s'\n", string_length, string, pattern);
 
-	for (i=0; i<string_length; i++)
-		for (k=0; k<pat_length; k++)
-			state[i][k] = (struct position){.this_score = -1, .score = -1, .amount = 0};
+	memset(state, -1, sizeof(state));
 
 	previous_delimiter = 1;
 	for (i=0; i<pat_length; i++) {
@@ -79,6 +79,7 @@ int score_string(const char *string,
 
 	for (i=0; i<string_length; i++) {
 		char ch = string[i];
+		unsigned max_k;
 		unsigned at_word_start = (i == 0);
 		at_word_start = at_word_start || ('A' <= ch && ch <= 'Z');
 		at_word_start = at_word_start || previous_delimiter;
@@ -96,9 +97,9 @@ int score_string(const char *string,
 			state[i][0].amount = 0;
 			state[i][0].score = i > 0 ? state[i-1][0].score : -1;
 		}
-		if (i == 0)
-			continue;
-		for (k=1; k<pat_length; k++) {
+		max_k = i+1;
+		max_k = (max_k > pat_length) ? pat_length : max_k;
+		for (k=1; k<max_k; k++) {
 			char pat_ch = translated_pattern[k];
 			int prev_score;
 			char prev_pattern;
@@ -141,7 +142,7 @@ int score_string(const char *string,
 	{
 		int t = score;
 		for (i=pat_length-1; i<(unsigned)-1; i--) {
-			for (k=0; k<string_length; k++)
+			for (k=i; k<string_length; k++)
 				if (state[k][i].this_score == t)
 					break;
 			assert(k<string_length);
