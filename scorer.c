@@ -62,8 +62,11 @@ int score_string(const char *string,
 	unsigned previous_delimiter;
 	int score;
 
-	if (pat_length == 0 || pat_length > MAX_PAT_LENGTH)
+	if (pat_length == 0)
 		return 0;
+
+	if (pat_length > MAX_PAT_LENGTH)
+		return -1;
 
 	dprintf("scoring string '%.*s' for pattern '%s'\n", string_length, string, pattern);
 
