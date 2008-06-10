@@ -6,7 +6,7 @@
 #include "scorer.h"
 
 static
-void	_assert_scores(char *file, int line, int expected_score, char *string, char *pattern, int *expected_match)
+void	_assert_scores(char *file, int line, int expected_score, char *string, char *pattern, unsigned *expected_match)
 {
 	int pat_len = strlen(pattern);
 	int real_score;
