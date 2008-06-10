@@ -120,22 +120,32 @@ char *input_names(int fd, char **endp)
 	return buf;
 }
 
-struct filter_result {
-	int index;
-	int score;
-};
-
 int filter_filename(struct filename *name, char *pattern, struct filter_result *result)
 {
-	int score = score_simple_string(name->p, pattern, 0);
+	int patlen = strlen(pattern);
+	unsigned match[patlen];
+	int score = score_simple_string(name->p, pattern, match);
 	if (score >= 0) {
 		result->score = score;
+		result->last_match_pos = (patlen > 0) ? match[patlen-1] : 0;
 		return 1;
 	}
 	return 0;
 }
 
 struct vector filtered = {.eltsize = sizeof(struct filter_result)};
+
+static
+int compare_filter_result(struct filter_result *a, struct filter_result *b)
+{
+	int rv = a->score - b->score;
+	struct filename *filea, *fileb;
+	if (rv)
+		return rv;
+	filea = files + a->index;
+	fileb = files + b->index;
+	return strlen(filea->p+filea->dirlength) - strlen( fileb->p+fileb->dirlength);
+}
 
 static
 void filter_files(char *pattern)
@@ -159,6 +169,7 @@ void filter_files(char *pattern)
 	}
 
 	results = (struct filter_result *)filtered.buffer;
+	qsort(results, filtered.used, sizeof(struct filter_result), (int (*)(const void *, const void *))compare_filter_result);
 
 	start = clock();
 
