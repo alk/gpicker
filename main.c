@@ -138,13 +138,13 @@ struct vector filtered = {.eltsize = sizeof(struct filter_result)};
 static
 int compare_filter_result(struct filter_result *a, struct filter_result *b)
 {
-	int rv = a->score - b->score;
+	int rv = b->score - a->score;
 	struct filename *filea, *fileb;
 	if (rv)
 		return rv;
 	filea = files + a->index;
 	fileb = files + b->index;
-	return strlen(filea->p+filea->dirlength) - strlen( fileb->p+fileb->dirlength);
+	return strlen(filea->p+filea->dirlength) - strlen(fileb->p+fileb->dirlength);
 }
 
 static
