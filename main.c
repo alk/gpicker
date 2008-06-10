@@ -128,7 +128,7 @@ struct filter_result {
 int filter_filename(struct filename *name, char *pattern, struct filter_result *result)
 {
 	int score = score_simple_string(name->p, pattern, 0);
-	if (score > 0) {
+	if (score >= 0) {
 		result->score = score;
 		return 1;
 	}
@@ -162,7 +162,7 @@ void filter_files(char *pattern)
 
 	start = clock();
 
-	g_object_ref(list_store);
+	g_object_ref(G_OBJECT(list_store));
 	gtk_tree_view_set_model(tree_view, 0);
 
 	gtk_list_store_clear(list_store);
@@ -181,9 +181,16 @@ void filter_files(char *pattern)
 	start = clock();
 
 	gtk_tree_view_set_model(tree_view, GTK_TREE_MODEL(list_store));
-	g_object_unref(list_store);
+	g_object_unref(G_OBJECT(list_store));
 
 	finish_timing(start, "setting model back");
+
+	{
+		GtkTreeSelection *sel = gtk_tree_view_get_selection(tree_view);
+		GtkTreePath *path = gtk_tree_path_new_from_indices(0,-1);
+		gtk_tree_selection_select_path(sel, path);
+		gtk_tree_path_free(path);
+	}
 }
 
 static
@@ -250,32 +257,6 @@ void setup_column(void)
 }
 
 static
-void setup_data(void)
-{
-	list_store = gtk_list_store_new(1, G_TYPE_INT);
-	gtk_tree_view_set_model(tree_view, GTK_TREE_MODEL(list_store));
-
-	{
-		FILE *pipe = popen("(cd /root/src/altoros/phase1; find -type f -print0)","r");
-		read_filenames(fileno(pipe));
-		fclose(pipe);
-	}
-
-	{
-		int i;
-		GtkTreeIter iter;
-		for (i=0;i<nfiles;i++) {
-			gtk_list_store_append(list_store, &iter);
-			gtk_list_store_set(list_store, &iter,
-					   0, i,
-					   -1);
-		}
-	}
-
-	setup_column();
-}
-
-static
 void exit_program(void)
 {
 	gtk_main_quit();
@@ -314,6 +295,50 @@ void on_entry_changed(GtkEditable *editable,
 }
 
 static
+void setup_data(void)
+{
+	list_store = gtk_list_store_new(1, G_TYPE_INT);
+	gtk_tree_view_set_model(tree_view, GTK_TREE_MODEL(list_store));
+
+	{
+		FILE *pipe = popen("(cd /root/src/altoros/phase1; find -type f -print0)","r");
+		read_filenames(fileno(pipe));
+		fclose(pipe);
+	}
+
+	setup_column();
+
+	on_entry_changed(GTK_EDITABLE(name_entry), 0);
+}
+
+static
+gboolean key_events_delegator(GtkWidget *w, GdkEventKey *e, gpointer dummy)
+{
+	gint sel_start, sel_end;
+	gboolean had_selection;
+	gint old_cursor_pos;
+	gboolean rv;
+
+	had_selection = gtk_editable_get_selection_bounds(GTK_EDITABLE(name_entry),
+							  &sel_start, &sel_end);
+	old_cursor_pos = gtk_editable_get_position(GTK_EDITABLE(name_entry));
+
+	g_object_set(G_OBJECT(tree_view), "can-focus", TRUE, NULL);
+	gtk_widget_grab_focus(GTK_WIDGET(tree_view));
+	rv = gtk_widget_event(GTK_WIDGET(tree_view), (GdkEvent *)e);
+	gtk_widget_grab_focus(GTK_WIDGET(name_entry));
+	g_object_set(G_OBJECT(tree_view), "can-focus", FALSE, NULL);
+
+	gtk_editable_set_position(GTK_EDITABLE(name_entry), old_cursor_pos);
+	if (had_selection)
+		gtk_editable_select_region(GTK_EDITABLE(name_entry), sel_start, sel_end);
+	else
+		gtk_editable_select_region(GTK_EDITABLE(name_entry), old_cursor_pos, old_cursor_pos);
+
+	return rv;
+}
+
+static
 void setup_signals(void)
 {
 	g_signal_connect(top_window, "destroy", G_CALLBACK(exit_program), 0);
@@ -321,6 +346,10 @@ void setup_signals(void)
 	g_signal_connect(name_entry, "activate", G_CALLBACK(choice_made), 0);
 	g_signal_connect(tree_view, "row-activated", G_CALLBACK(choice_made), 0);
 	g_signal_connect(name_entry, "changed", G_CALLBACK(on_entry_changed), 0);
+
+	g_object_set(G_OBJECT(tree_view), "can-focus", FALSE, NULL);
+	g_signal_connect_after(name_entry, "key-press-event", G_CALLBACK(key_events_delegator), 0);
+	g_signal_connect_after(name_entry, "key-release-event", G_CALLBACK(key_events_delegator), 0);
 }
 
 int main(int argc, char **argv)
