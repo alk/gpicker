@@ -6,13 +6,18 @@
 #include "scorer.h"
 
 static
+struct scorer_query qry;
+
+static
 void	_assert_scores(char *file, int line, int expected_score, char *string, char *pattern, unsigned *expected_match)
 {
 	int pat_len = strlen(pattern);
 	int real_score;
 	int i;
 	unsigned match[pat_len];
-	real_score = score_simple_string(string, pattern, match);
+
+	qry.pattern = pattern;
+	real_score = score_string(string, &qry, strlen(string), match);
 	if (real_score != expected_score) {
 		_fail_unless(0, file, line, 0, "scoring %s against pattern %s should score 0x%x, not 0x%x",
 			     string, pattern, expected_score, real_score,
@@ -67,16 +72,49 @@ START_TEST(test_slash_handling)
 }
 END_TEST
 
+START_TEST(test_right_match)
+{
+	qry.right_match = 1;
+
+	assert_scores(0, "sabababa", "a", M(7));
+	assert_scores(0, "sabababa", "aa", M(5,7));
+
+	assert_scores(0, "sabababa", "b", M(6));
+	assert_scores(0, "sabababa", "bb", M(4,6));
+
+	qry.right_match = 0;
+
+	assert_scores(0, "sabababa", "a", M(1));
+	assert_scores(0, "sabababa", "aa", M(1,3));
+
+	assert_scores(0, "sabababa", "b", M(2));
+	assert_scores(0, "sabababa", "bb", M(2,4));
+}
+END_TEST
+
+static
+void setup(void)
+{
+	qry.right_match = 0;
+}
+
 Suite *scorer_suite (void)
 {
 	Suite *s = suite_create ("Scorer");
 
-#define T(name) do { TCase *tc = tcase_create(#name); tcase_add_test(tc, name); suite_add_tcase(s, tc);} while (0)
+#define T(name)							\
+	do {							\
+		TCase *tc = tcase_create(#name);		\
+		tcase_add_test(tc, name);			\
+		tcase_add_checked_fixture(tc, setup, 0);	\
+		suite_add_tcase(s, tc);				\
+	} while (0)
 
 	T(test_char_after_delimiter_handling);
 	T(test_capital_pattern_chars_work);
 	T(test_single_char_matches_work);
 	T(test_slash_handling);
+	T(test_right_match);
 
 	return s;
 #undef T

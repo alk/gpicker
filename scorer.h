@@ -3,6 +3,7 @@
 
 struct scorer_query {
 	const char *pattern;
+	int right_match;
 };
 
 struct filter_result {

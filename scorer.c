@@ -144,11 +144,20 @@ int score_string(const char *string,
 
 	{
 		int t = score;
+		k = string_length;
 		for (i=pat_length-1; i<(unsigned)-1; i--) {
-			for (k=i; k<string_length; k++)
-				if (state[k][i].this_score == t)
-					break;
-			assert(k<string_length);
+			if (query->right_match) {
+				for (k=k-1; k>=i; k--)
+					if (state[k][i].this_score == t)
+						break;
+				assert(k>=i);
+			} else {
+				int last_k = k;
+				for (k=0; k<last_k; k++)
+					if (state[k][i].this_score == t)
+						break;
+				assert(k<string_length);
+			}
 			match[i] = k;
 			t -= state[k][i].amount;
 		}
@@ -160,7 +169,7 @@ int score_string(const char *string,
 
 int score_simple_string(const char *string, const char *pattern, unsigned *match)
 {
-	struct scorer_query qry = {.pattern = pattern};
+	struct scorer_query qry = {.pattern = pattern,.right_match = 0};
 	unsigned string_length = strlen(string);
 	return score_string(string, &qry, string_length, match);
 }
