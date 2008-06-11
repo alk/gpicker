@@ -11,6 +11,8 @@
 #include <time.h>
 #include "scorer.h"
 
+#define max(a,b) ({__typeof__ (a) ____a = (a); __typeof__ (b) ____b = (b); ____b > ____a ? ____b : ____a; })
+
 __attribute__((noreturn))
 static
 void memory_exhausted(void)
@@ -120,17 +122,79 @@ char *input_names(int fd, char **endp)
 	return buf;
 }
 
-int filter_filename(struct filename *name, char *pattern, struct filter_result *result)
+int filter_filename(struct filename *name, void *_pattern, struct filter_result *result)
 {
+	char *pattern = _pattern;
 	int patlen = strlen(pattern);
 	unsigned match[patlen];
-	int score = score_simple_string(name->p, pattern, match);
+	int score = score_simple_string(name->p + name->dirlength, pattern, match);
 	if (score >= 0) {
 		result->score = score;
 		result->last_match_pos = (patlen > 0) ? match[patlen-1] : 0;
 		return 1;
 	}
 	return 0;
+}
+
+struct split_pattern {
+	char *basename;
+	char *dirname;
+};
+
+int filter_filename_with_dir(struct filename *name,
+			     void *_pattern,
+			     struct filter_result *result)
+{
+	struct split_pattern *pattern = (struct split_pattern *)_pattern;
+	int baselen = strlen(pattern->basename);
+	int namelen = strlen(name->p);
+	unsigned match[max(strlen(pattern->dirname), baselen)];
+	struct scorer_query qry;
+
+	if (!name->dirlength)
+		return 0;
+
+	qry.pattern = pattern->basename;
+	qry.right_match = 0;
+	result->score = score_string(name->p+name->dirlength, &qry, namelen-name->dirlength, match);
+	if (result->score < 0)
+		return 0;
+	result->last_match_pos = baselen && match[baselen-1];
+	qry.pattern = pattern->dirname;
+	qry.right_match = 1;
+	result->dirscore = score_string(name->p, &qry, name->dirlength-1, match);
+	if (result->dirscore < 0)
+		return 0;
+	result->first_dir_match_pos = (name->dirlength-1) && match[0];
+	return 1;
+}
+
+void destroy_filter_with_dir(void *data)
+{
+	struct split_pattern *pattern = (struct split_pattern *)data;
+	free(pattern->basename);
+	free(pattern->dirname);
+	free(pattern);
+}
+
+typedef void (*filter_destructor)(void *);
+typedef int (*filter_func)(struct filename *, void *, struct filter_result *);
+
+void *prepare_filter(char *filter, filter_func *func, filter_destructor *destructor)
+{
+	char *last_slash = strrchr(filter, '/');
+	if (!last_slash) {
+		*destructor = NULL;
+		*func = filter_filename;
+		return filter;
+	} else {
+		*destructor = destroy_filter_with_dir;
+		*func = filter_filename_with_dir;
+		struct split_pattern *pat = malloc(sizeof(struct split_pattern));
+		pat->basename = strdup(last_slash+1);
+		pat->dirname = g_strndup(filter, last_slash-filter);
+		return pat;
+	}
 }
 
 struct vector filtered = {.eltsize = sizeof(struct filter_result)};
@@ -142,9 +206,15 @@ int compare_filter_result(struct filter_result *a, struct filter_result *b)
 	struct filename *filea, *fileb;
 	if (rv)
 		return rv;
+	rv = b->dirscore - a->dirscore;
+	if (rv)
+		return rv;
 	filea = files + a->index;
 	fileb = files + b->index;
-	return strlen(filea->p+filea->dirlength) - strlen(fileb->p+fileb->dirlength);
+	rv = strlen(filea->p+filea->dirlength) - strlen(fileb->p+fileb->dirlength);
+	if (rv)
+		return rv;
+	return filea->dirlength - fileb->dirlength;
 }
 
 static
@@ -155,11 +225,16 @@ void filter_files(char *pattern)
 	struct filter_result *results;
 	GtkTreeIter iter;
 	clock_t start;
+	void *filter;
+	filter_func filter_func;
+	filter_destructor destructor = 0;
+
+	filter = prepare_filter(pattern, &filter_func, &destructor);
 
 	vector_clear(&filtered);
 
 	for (i=0; i<nfiles; i++) {
-		int passes = filter_filename(files + i, pattern, &result);
+		int passes = filter_func(files + i, filter, &result);
 		struct filter_result *place;
 		if (!passes)
 			continue;
@@ -167,6 +242,9 @@ void filter_files(char *pattern)
 		result.index = i;
 		*place = result;
 	}
+
+	if (destructor)
+		destructor(filter);
 
 	results = (struct filter_result *)filtered.buffer;
 	qsort(results, filtered.used, sizeof(struct filter_result), (int (*)(const void *, const void *))compare_filter_result);
