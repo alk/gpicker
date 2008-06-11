@@ -169,13 +169,13 @@ int filter_filename_with_dir(struct filename *name,
 	result->score = score_string(name->p+name->dirlength, &qry, namelen-name->dirlength, base_match);
 	if (result->score < 0)
 		return 0;
-	result->last_match_pos = baselen && base_match[baselen-1];
+	result->last_match_pos = baselen ? base_match[baselen-1] : 0;
 	qry.pattern = pattern->dirname;
 	qry.right_match = 1;
 	result->dirscore = score_string(name->p, &qry, name->dirlength-1, dir_match);
 	if (result->dirscore < 0)
 		return 0;
-	result->first_dir_match_pos = (name->dirlength-1) && dir_match[0];
+	result->first_dir_match_pos = (name->dirlength-1) ? dir_match[0] : 0;
 
 	if (ematch) {
 		int i;
@@ -184,7 +184,7 @@ int filter_filename_with_dir(struct filename *name,
 			ematch[i] = dir_match[i];
 		ematch[dirlen] = name->dirlength-1;
 		for (i=0;i<baselen;i++)
-			ematch[i+dirlen] = base_match[i]+name->dirlength;
+			ematch[i+dirlen+1] = base_match[i]+name->dirlength;
 	}
 	
 	return 1;
@@ -366,14 +366,8 @@ void cell_data_func(GtkTreeViewColumn *col,
 		passes = filter_func(files + index, filter, &result, match);
 		if (destructor)
 			destructor(filter);
-		printf("match of %s against %s\n", files[index].p, pattern);
 		if (!passes)
 			return;
-		puts("passed");
-		for (i=0;i<patlen;i++)
-			printf("%d ", match[i]);
-		putchar('\n');
-
 
 		PangoAttrList *list = pango_attr_list_new();
 		for (i=0;i<patlen;i++) {
