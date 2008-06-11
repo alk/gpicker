@@ -122,18 +122,25 @@ char *input_names(int fd, char **endp)
 	return buf;
 }
 
-int filter_filename(struct filename *name, void *_pattern, struct filter_result *result)
+int filter_filename(struct filename *name,
+		    const void *_pattern,
+		    struct filter_result *result,
+		    unsigned *ematch)
 {
-	char *pattern = _pattern;
+	const char *pattern = _pattern;
 	int patlen = strlen(pattern);
 	unsigned match[patlen];
 	int score = score_simple_string(name->p + name->dirlength, pattern, match);
-	if (score >= 0) {
-		result->score = score;
-		result->last_match_pos = (patlen > 0) ? match[patlen-1] : 0;
-		return 1;
+	if (score < 0)
+		return 0;
+	result->score = score;
+	result->last_match_pos = (patlen > 0) ? match[patlen-1] : 0;
+	if (ematch) {
+		int i;
+		for (i=0;i<patlen;i++)
+			ematch[i] = match[i] + name->dirlength;
 	}
-	return 0;
+	return 1;
 }
 
 struct split_pattern {
@@ -142,13 +149,16 @@ struct split_pattern {
 };
 
 int filter_filename_with_dir(struct filename *name,
-			     void *_pattern,
-			     struct filter_result *result)
+			     const void *_pattern,
+			     struct filter_result *result,
+			     unsigned *ematch)
 {
-	struct split_pattern *pattern = (struct split_pattern *)_pattern;
+	const struct split_pattern *pattern = (struct split_pattern *)_pattern;
 	int baselen = strlen(pattern->basename);
 	int namelen = strlen(name->p);
-	unsigned match[max(strlen(pattern->dirname), baselen)];
+	int dirlen = strlen(pattern->dirname);
+	unsigned base_match[baselen];
+	unsigned dir_match[dirlen];
 	struct scorer_query qry;
 
 	if (!name->dirlength)
@@ -156,20 +166,31 @@ int filter_filename_with_dir(struct filename *name,
 
 	qry.pattern = pattern->basename;
 	qry.right_match = 0;
-	result->score = score_string(name->p+name->dirlength, &qry, namelen-name->dirlength, match);
+	result->score = score_string(name->p+name->dirlength, &qry, namelen-name->dirlength, base_match);
 	if (result->score < 0)
 		return 0;
-	result->last_match_pos = baselen && match[baselen-1];
+	result->last_match_pos = baselen && base_match[baselen-1];
 	qry.pattern = pattern->dirname;
 	qry.right_match = 1;
-	result->dirscore = score_string(name->p, &qry, name->dirlength-1, match);
+	result->dirscore = score_string(name->p, &qry, name->dirlength-1, dir_match);
 	if (result->dirscore < 0)
 		return 0;
-	result->first_dir_match_pos = (name->dirlength-1) && match[0];
+	result->first_dir_match_pos = (name->dirlength-1) && dir_match[0];
+
+	if (ematch) {
+		int i;
+		int dirlen = strlen(pattern->dirname);
+		for (i=0;i<dirlen;i++)
+			ematch[i] = dir_match[i];
+		ematch[dirlen] = name->dirlength-1;
+		for (i=0;i<baselen;i++)
+			ematch[i+dirlen] = base_match[i]+name->dirlength;
+	}
+	
 	return 1;
 }
 
-void destroy_filter_with_dir(void *data)
+void destroy_filter_with_dir(const void *data)
 {
 	struct split_pattern *pattern = (struct split_pattern *)data;
 	free(pattern->basename);
@@ -177,10 +198,10 @@ void destroy_filter_with_dir(void *data)
 	free(pattern);
 }
 
-typedef void (*filter_destructor)(void *);
-typedef int (*filter_func)(struct filename *, void *, struct filter_result *);
+typedef void (*filter_destructor)(const void *);
+typedef int (*filter_func)(struct filename *, const void *, struct filter_result *, unsigned *);
 
-void *prepare_filter(char *filter, filter_func *func, filter_destructor *destructor)
+const void *prepare_filter(const char *filter, filter_func *func, filter_destructor *destructor)
 {
 	char *last_slash = strrchr(filter, '/');
 	if (!last_slash) {
@@ -209,6 +230,12 @@ int compare_filter_result(struct filter_result *a, struct filter_result *b)
 	rv = b->dirscore - a->dirscore;
 	if (rv)
 		return rv;
+	rv = a->last_match_pos - b->last_match_pos;
+	if (rv)
+		return rv;
+	rv = b->first_dir_match_pos - a->first_dir_match_pos;
+	if (rv)
+		return rv;
 	filea = files + a->index;
 	fileb = files + b->index;
 	rv = strlen(filea->p+filea->dirlength) - strlen(fileb->p+fileb->dirlength);
@@ -225,7 +252,7 @@ void filter_files(char *pattern)
 	struct filter_result *results;
 	GtkTreeIter iter;
 	clock_t start;
-	void *filter;
+	const void *filter;
 	filter_func filter_func;
 	filter_destructor destructor = 0;
 
@@ -234,7 +261,7 @@ void filter_files(char *pattern)
 	vector_clear(&filtered);
 
 	for (i=0; i<nfiles; i++) {
-		int passes = filter_func(files + i, filter, &result);
+		int passes = filter_func(files + i, filter, &result, 0);
 		struct filter_result *place;
 		if (!passes)
 			continue;
@@ -321,8 +348,43 @@ void cell_data_func(GtkTreeViewColumn *col,
 	gtk_tree_model_get(model, iter, 0, &index, -1);
 	text = files[index].p;
 	if (text) {
+		const char *pattern = gtk_entry_get_text(GTK_ENTRY(name_entry));
+		int patlen = strlen(pattern);
+		unsigned match[patlen];
+		const void *filter;
+		filter_func filter_func;
+		filter_destructor destructor = 0;
+		struct filter_result result;
+		int passes;
+		int i;
+
 		g_object_set(G_OBJECT(renderer),
 			     "text", text,
+			     NULL);
+
+		filter = prepare_filter(pattern, &filter_func, &destructor);
+		passes = filter_func(files + index, filter, &result, match);
+		if (destructor)
+			destructor(filter);
+		printf("match of %s against %s\n", files[index].p, pattern);
+		if (!passes)
+			return;
+		puts("passed");
+		for (i=0;i<patlen;i++)
+			printf("%d ", match[i]);
+		putchar('\n');
+
+
+		PangoAttrList *list = pango_attr_list_new();
+		for (i=0;i<patlen;i++) {
+			PangoAttribute *attr = pango_attr_weight_new(PANGO_WEIGHT_BOLD);
+			attr->start_index = match[i];
+			attr->end_index = match[i]+1;
+			pango_attr_list_insert(list, attr);
+		}
+
+		g_object_set(G_OBJECT(renderer),
+			     "attributes", list,
 			     NULL);
 	}
 }
