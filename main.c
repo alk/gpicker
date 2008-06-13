@@ -176,7 +176,7 @@ int filter_filename_with_dir(struct filename *name,
 	result->dirscore = score_string(name->p, &qry, name->dirlength-1, dir_match);
 	if (result->dirscore < 0)
 		return 0;
-	result->first_dir_match_pos = (name->dirlength-1) ? name->dirlength-1-dir_match[0] : 0;
+	result->first_dir_match_pos = (name->dirlength-1) ? dir_match[0]-name->dirlength : 0;
 
 	if (ematch) {
 		int i;
@@ -234,12 +234,12 @@ int compare_filter_result(struct filter_result *a, struct filter_result *b)
 	rv = a->last_match_pos - b->last_match_pos;
 	if (rv)
 		return rv;
-	rv = a->first_dir_match_pos - b->first_dir_match_pos;
-	if (rv)
-		return rv;
 	filea = files + a->index;
 	fileb = files + b->index;
 	rv = strlen(filea->p+filea->dirlength) - strlen(fileb->p+fileb->dirlength);
+	if (rv)
+		return rv;
+	rv = b->first_dir_match_pos - a->first_dir_match_pos;
 	if (rv)
 		return rv;
 	return filea->dirlength - fileb->dirlength;
@@ -276,6 +276,8 @@ void filter_files(char *pattern)
 
 	results = (struct filter_result *)filtered.buffer;
 	qsort(results, filtered.used, sizeof(struct filter_result), (int (*)(const void *, const void *))compare_filter_result);
+
+	compare_filter_result(results, results+1);
 
 	start = clock();
 
