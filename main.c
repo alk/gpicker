@@ -380,6 +380,7 @@ void cell_data_func(GtkTreeViewColumn *col,
 		g_object_set(G_OBJECT(renderer),
 			     "attributes", list,
 			     NULL);
+		pango_attr_list_unref(list);
 	}
 }
 
