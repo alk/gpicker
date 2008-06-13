@@ -133,6 +133,7 @@ int filter_filename(struct filename *name,
 	int score = score_simple_string(name->p + name->dirlength, pattern, match);
 	if (score < 0)
 		return 0;
+	memset(result, 0, sizeof(*result));
 	result->score = score;
 	result->last_match_pos = (patlen > 0) ? match[patlen-1] : 0;
 	if (ematch) {
@@ -175,7 +176,7 @@ int filter_filename_with_dir(struct filename *name,
 	result->dirscore = score_string(name->p, &qry, name->dirlength-1, dir_match);
 	if (result->dirscore < 0)
 		return 0;
-	result->first_dir_match_pos = (name->dirlength-1) ? dir_match[0] : 0;
+	result->first_dir_match_pos = (name->dirlength-1) ? name->dirlength-1-dir_match[0] : 0;
 
 	if (ematch) {
 		int i;
@@ -233,7 +234,7 @@ int compare_filter_result(struct filter_result *a, struct filter_result *b)
 	rv = a->last_match_pos - b->last_match_pos;
 	if (rv)
 		return rv;
-	rv = b->first_dir_match_pos - a->first_dir_match_pos;
+	rv = a->first_dir_match_pos - b->first_dir_match_pos;
 	if (rv)
 		return rv;
 	filea = files + a->index;
