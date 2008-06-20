@@ -51,9 +51,11 @@ void vector_clear(struct vector *v)
 static
 void finish_timing(clock_t start, char *info)
 {
-	clock_t ticks = clock() - start;
-	double msecs = ticks/(double)CLOCKS_PER_SEC*1000.0;
-	printf("%s took %g msecs\n", info, msecs);
+	/* 
+         * clock_t ticks = clock() - start;
+	 * double msecs = ticks/(double)CLOCKS_PER_SEC*1000.0;
+	 * printf("%s took %g msecs\n", info, msecs);
+         */
 }
 
 struct filename {
@@ -412,9 +414,32 @@ void exit_program(void)
 }
 
 static
+void print_selection(void)
+{
+	GtkTreeSelection *sel = gtk_tree_view_get_selection(tree_view);
+	GList *list;
+	GtkTreeIter iter;
+	gint idx;
+
+	list = gtk_tree_selection_get_selected_rows(sel, 0);
+	if (!list) {
+		puts("nil");
+		return;
+	}
+
+	gtk_tree_model_get_iter(GTK_TREE_MODEL(list_store), &iter, list->data);
+	gtk_tree_model_get(GTK_TREE_MODEL(list_store), &iter, 0, &idx, -1);
+
+	puts(files[idx].p);
+
+	g_list_foreach(list, (GFunc) gtk_tree_path_free, NULL);
+	g_list_free(list);
+}
+
+static
 void choice_made(void)
 {
-	printf("Choice made!\n");
+	print_selection();
 	exit_program();
 }
 
@@ -424,6 +449,7 @@ gboolean on_top_window_keypress(GtkWidget *_dummy,
 				gpointer _dummy2)
 {
 	if (event->keyval == GDK_Escape) {
+		puts("nil");
 		exit_program();
 		return TRUE;
 	}
@@ -449,11 +475,14 @@ void setup_data(void)
 	list_store = gtk_list_store_new(1, G_TYPE_INT);
 	gtk_tree_view_set_model(tree_view, GTK_TREE_MODEL(list_store));
 
-	{
-		FILE *pipe = popen("(cd /root/src/altoros/phase1; find -type f -print0)","r");
-		read_filenames(fileno(pipe));
-		fclose(pipe);
-	}
+	/* 
+         * {
+	 * 	FILE *pipe = popen("(cd /root/src/altoros/phase1; find -type f -print0)","r");
+	 * 	read_filenames(fileno(pipe));
+	 * 	fclose(pipe);
+	 * }
+         */
+	read_filenames(fileno(stdin));
 
 	setup_column();
 
