@@ -430,7 +430,7 @@ void print_selection(void)
 	gtk_tree_model_get_iter(GTK_TREE_MODEL(list_store), &iter, list->data);
 	gtk_tree_model_get(GTK_TREE_MODEL(list_store), &iter, 0, &idx, -1);
 
-	puts(files[idx].p);
+	printf("\"%s\"\n", files[idx].p);
 
 	g_list_foreach(list, (GFunc) gtk_tree_path_free, NULL);
 	g_list_free(list);
