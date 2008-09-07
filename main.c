@@ -510,22 +510,42 @@ void on_entry_changed(GtkEditable *editable,
 }
 
 static
+char *project_type;
+static
+char *project_dir;
+
+static
+void setup_filenames(void)
+{
+	int rv = chdir(project_dir);
+	FILE *pipe;
+
+	if (rv) {
+		perror("cannot chdir to project directory");
+		exit(1);
+	}
+	
+
+	if (!project_type || !strcmp(project_type, "default"))
+		pipe = popen("find '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*' -a '!' -wholename '*.svn/*' -type f -print0","r");
+	else if (!strcmp(project_type, "git"))
+		pipe = popen("git ls-files --exclude-standard -z", "r");
+
+	if (!pipe) {
+		perror("failed to spawn find");
+		exit(1);
+	}
+	read_filenames(fileno(pipe));
+	fclose(pipe);
+}
+
+static
 void setup_data(void)
 {
 	list_store = gtk_list_store_new(1, G_TYPE_INT);
 	gtk_tree_view_set_model(tree_view, GTK_TREE_MODEL(list_store));
-
-	/* 
-         * {
-	 * 	FILE *pipe = popen("(cd /root/src/altoros/phase1; find -type f -print0)","r");
-	 * 	read_filenames(fileno(pipe));
-	 * 	fclose(pipe);
-	 * }
-         */
-	read_filenames(fileno(stdin));
-
+	setup_filenames();
 	setup_column();
-
 	on_entry_changed(GTK_EDITABLE(name_entry), 0);
 }
 
@@ -570,11 +590,41 @@ void setup_signals(void)
 	g_signal_connect_after(name_entry, "key-release-event", G_CALLBACK(key_events_delegator), 0);
 }
 
+static
+GOptionEntry entries[] = {
+	{"project-type", 't', 0, G_OPTION_ARG_STRING, &project_type, "type of project (default, git)", 0},
+	{0}
+};
+
+static
+void parse_options(int argc, char **argv)
+{
+	GError *error = 0;
+	GOptionContext *context;
+	context = g_option_context_new("PROJECT-DIR-PATH - quickly pick file from a project");
+	g_option_context_add_main_entries(context, entries, 0);
+	g_option_context_add_group(context, gtk_get_option_group(TRUE));
+	if (!g_option_context_parse(context, &argc, &argv, &error)) {
+		fprintf(stderr, "option parsing failed: %s\n", error->message);
+		exit(1);
+	}
+	if (argc < 2) {
+		fprintf(stderr, "Give me project dir\n");
+		exit(1);
+	}
+	if (project_type && strcmp(project_type, "git") && strcmp(project_type, "default")) {
+		fprintf(stderr, "Unknown project type specified: %s\n", project_type);
+		exit(1);
+	}
+	project_dir = argv[1];
+}
+
 int main(int argc, char **argv)
 {
 	timing_t tstart = start_timing();
 
-	gtk_init(&argc, &argv);
+	parse_options(argc, argv);
+	gtk_init(0, 0);
 	glade_ui = glade_xml_new("filechooser.glade", 0, 0);
 
 	finish_timing(tstart, "gtk initialization");
