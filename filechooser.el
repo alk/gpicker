@@ -34,7 +34,8 @@
   (let ((file (filechooser-pick *filechooser-project-dir*)))
     (when file
       (setq file (expand-file-name file *filechooser-project-dir*))
-      (funcall find-function file))))
+      (let ((revert-without-query (list (regexp-quote (abbreviate-file-name file)))))
+        (funcall find-function file)))))
 
 (defun filechooser-find-file ()
   (interactive)
