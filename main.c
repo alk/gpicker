@@ -21,6 +21,24 @@ void memory_exhausted(void)
 	abort();
 }
 
+static
+void *xmalloc(size_t size)
+{
+	void *rv = malloc(size);
+	if (!rv)
+		memory_exhausted();
+	return rv;
+}
+
+void *xrealloc(void *ptr, size_t size)
+{
+	ptr = realloc(ptr, size);
+	if (!ptr)
+		memory_exhausted();
+	return ptr;
+}
+
+
 struct vector {
 	char *buffer;
 	int eltsize;
@@ -90,11 +108,8 @@ static
 char *input_names(int fd, char **endp)
 {
 	int bufsize = INIT_BUFSIZE;
-	char *buf = malloc(bufsize);
+	char *buf = xmalloc(bufsize);
 	int filled = 0;
-
-	if (!buf)
-		memory_exhausted();
 
 	do {
 		int readen = read(fd, buf+filled, bufsize-filled);
@@ -109,16 +124,12 @@ char *input_names(int fd, char **endp)
 		filled += readen;
 		if (bufsize - filled < MIN_BUFSIZE_FREE) {
 			bufsize = filled + MIN_BUFSIZE_FREE;
-			buf = realloc(buf, bufsize);
-			if (!buf)
-				memory_exhausted();
+			buf = xrealloc(buf, bufsize);
 		}
 	} while (1);
 	if (filled && buf[filled-1])
 		filled++;
-	buf = realloc(buf, filled);
-	if (!buf)
-		memory_exhausted();
+	buf = xrealloc(buf, filled);
 	buf[filled-1] = 0;
 	*endp = buf+filled;
 	return buf;
