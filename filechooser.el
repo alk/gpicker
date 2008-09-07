@@ -1,5 +1,5 @@
 
-(defvar *filechooser-path* (expand-file-name "~/src/altoros/filechooser-c/filechooser"))
+(defvar *filechooser-path* "filechooser")
 (defvar *filechooser-project-dir* (expand-file-name "~/src/altoros/phase1"))
 (defvar *filechooser-project-type* nil)
 
