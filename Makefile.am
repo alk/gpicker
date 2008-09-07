@@ -3,7 +3,7 @@ filechooser_SOURCES = main.c scorer.c
 filechooser_LDADD = @gtk2_LIBS@ @libglade_LIBS@
 AM_CFLAGS = -DPKGDATADIR=\"$(pkgdatadir)\" @gtk2_CFLAGS@ @libglade_CFLAGS@
 
-dist_pkgdata_DATA=filechooser.glade
+dist_pkgdata_DATA=filechooser.glade filechooser.el
 
 if HAVE_CHECK
 
