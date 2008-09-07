@@ -145,7 +145,7 @@ char *input_names(int fd, char **endp)
 		}
 		filled += readen;
 		if (bufsize - filled < MIN_BUFSIZE_FREE) {
-			bufsize = filled + MIN_BUFSIZE_FREE;
+			bufsize = filled + MIN_BUFSIZE_FREE * 2;
 			buf = xrealloc(buf, bufsize);
 		}
 	} while (1);
@@ -157,6 +157,7 @@ char *input_names(int fd, char **endp)
 	return buf;
 }
 
+static
 int filter_filename(struct filename *name,
 		    const void *_pattern,
 		    struct filter_result *result,
@@ -184,6 +185,7 @@ struct split_pattern {
 	char *dirname;
 };
 
+static
 int filter_filename_with_dir(struct filename *name,
 			     const void *_pattern,
 			     struct filter_result *result,
@@ -226,6 +228,7 @@ int filter_filename_with_dir(struct filename *name,
 	return 1;
 }
 
+static
 void destroy_filter_with_dir(const void *data)
 {
 	struct split_pattern *pattern = (struct split_pattern *)data;
@@ -237,6 +240,7 @@ void destroy_filter_with_dir(const void *data)
 typedef void (*filter_destructor)(const void *);
 typedef int (*filter_func)(struct filename *, const void *, struct filter_result *, unsigned *);
 
+static
 const void *prepare_filter(const char *filter, filter_func *func, filter_destructor *destructor)
 {
 	char *last_slash = strrchr(filter, '/');
