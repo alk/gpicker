@@ -1,7 +1,9 @@
 bin_PROGRAMS = filechooser
 filechooser_SOURCES = main.c scorer.c
 filechooser_LDADD = @gtk2_LIBS@ @libglade_LIBS@
-AM_CFLAGS = @gtk2_CFLAGS@ @libglade_CFLAGS@
+AM_CFLAGS = -DPKGDATADIR=\"$(pkgdatadir)\" @gtk2_CFLAGS@ @libglade_CFLAGS@
+
+dist_pkgdata_DATA=filechooser.glade
 
 if HAVE_CHECK
 

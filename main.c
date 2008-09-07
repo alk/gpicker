@@ -635,7 +635,7 @@ int main(int argc, char **argv)
 
 	parse_options(argc, argv);
 	gtk_init(0, 0);
-	glade_ui = glade_xml_new("filechooser.glade", 0, 0);
+	glade_ui = glade_xml_new(PKGDATADIR "/filechooser.glade", 0, 0);
 
 	finish_timing(tstart, "gtk initialization");
 
