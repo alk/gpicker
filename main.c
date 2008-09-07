@@ -224,7 +224,7 @@ int filter_filename_with_dir(struct filename *name,
 		for (i=0;i<baselen;i++)
 			ematch[i+dirlen+1] = base_match[i]+name->dirlength;
 	}
-	
+
 	return 1;
 }
 
@@ -535,7 +535,6 @@ void setup_filenames(void)
 		perror("cannot chdir to project directory");
 		exit(1);
 	}
-	
 
 	if (!project_type || !strcmp(project_type, "default"))
 		pipe = popen("find '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*' -a '!' -wholename '*.svn/*' -type f -print0","r");
