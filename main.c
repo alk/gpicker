@@ -366,8 +366,11 @@ void read_filenames(int fd)
 
 	while (p < endp) {
 		int dirlength = 0;
-		char *start = p;
+		char *start;
 		char ch;
+		if (p[0] == '.' && p[1] == '/')
+			p += 2;
+		start = p;
 		while ((ch = *p++))
 			if (ch == '/')
 				dirlength = p - start;
