@@ -4,14 +4,22 @@
 
 (defun filechooser-pick (dir)
   (let ((chooser-buffer (generate-new-buffer "*filechooser*")))
-    (unwind-protect (progn
-		      (call-process *filechooser-path*
-				    nil
-				    (list chooser-buffer (expand-file-name "~/fc-errors.log"))
-				    nil
-				    dir)
-		      (with-current-buffer chooser-buffer
-			(read (buffer-string))))
+    (unwind-protect (let ((status (call-process *filechooser-path*
+                                                nil ;; input
+                                                (list chooser-buffer "/tmp/fc-errors.log")
+                                                nil ;; dont redisplay
+                                                dir)))
+                      (if (eql status 0)
+                          (save-excursion
+                            (set-buffer chooser-buffer)
+                            (read (buffer-string)))
+                        (with-current-buffer (get-buffer-create "*Messages*")
+                          (message "filechooser exited with status %d" status))
+                        (save-excursion
+                          (set-buffer "*Messages*")
+                          (goto-char (point-max))
+                          (insert-file-contents "/tmp/fc-errors.log"))
+                        nil))
       (with-current-buffer chooser-buffer
 	(set-buffer-modified-p nil))
       (kill-buffer chooser-buffer))))
