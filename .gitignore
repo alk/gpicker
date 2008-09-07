@@ -12,3 +12,6 @@ Makefile
 Makefile.in
 aclocal.m4
 scorer-tests
+config.h
+config.h.in
+stamp-h1
