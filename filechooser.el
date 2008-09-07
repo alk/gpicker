@@ -1,6 +1,7 @@
 
 (defvar *filechooser-path* (expand-file-name "~/src/altoros/filechooser-c/filechooser"))
 (defvar *filechooser-project-dir* (expand-file-name "~/src/altoros/phase1"))
+(defvar *filechooser-project-type* nil)
 
 (defun filechooser-pick (dir)
   (let ((chooser-buffer (generate-new-buffer "*filechooser*")))
@@ -8,6 +9,8 @@
                                                 nil ;; input
                                                 (list chooser-buffer "/tmp/fc-errors.log")
                                                 nil ;; dont redisplay
+                                                "-t"
+                                                (or *filechooser-project-type* "default")
                                                 dir)))
                       (if (eql status 0)
                           (save-excursion
@@ -23,6 +26,12 @@
       (with-current-buffer chooser-buffer
 	(set-buffer-modified-p nil))
       (kill-buffer chooser-buffer))))
+
+(defun filechooser-set-project-type (type)
+  "Sets type of current filechooser project"
+  (interactive (list (completing-read "Choose filechooser project type: " '("git" "default")
+                                      nil t nil nil "default")))
+  (setq *filechooser-project-type* type))
 
 (defun filechooser-visit-project (dir)
   "Selects current project directory for filechooser"
