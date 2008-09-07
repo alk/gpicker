@@ -1,9 +1,11 @@
 
 (defvar *filechooser-path* "filechooser")
-(defvar *filechooser-project-dir* (expand-file-name "~/src/altoros/phase1"))
+(defvar *filechooser-project-dir* nil)
 (defvar *filechooser-project-type* nil)
 
 (defun filechooser-pick (dir)
+  (unless *filechooser-project-dir*
+    (error "visit filechooser project via 'filechooser-visit-project first!"))
   (let ((chooser-buffer (generate-new-buffer "*filechooser*")))
     (unwind-protect (let ((status (call-process *filechooser-path*
                                                 nil ;; input
