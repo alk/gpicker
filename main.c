@@ -8,8 +8,39 @@
 #include <memory.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <time.h>
 #include "scorer.h"
+#include "config.h"
+
+#if WITH_TIMING
+
+#include <time.h>
+
+typedef clock_t timing_t;
+#define start_timing() clock()
+
+static
+void finish_timing(clock_t start, char *info)
+{
+	clock_t ticks = clock() - start;
+	double msecs = ticks/(double)CLOCKS_PER_SEC*1000.0;
+	fprintf(stderr, "%s took %g msecs\n", info, msecs);
+}
+
+#else
+
+typedef int timing_t;
+static inline
+timing_t start_timing()
+{
+	return 0;
+}
+
+static inline
+void finish_timing(timing_t start, char *info)
+{
+}
+
+#endif
 
 #define max(a,b) ({__typeof__ (a) ____a = (a); __typeof__ (b) ____b = (b); ____b > ____a ? ____b : ____a; })
 
@@ -66,15 +97,6 @@ void vector_clear(struct vector *v)
 	v->avail = 0;
 }
 
-static
-void finish_timing(clock_t start, char *info)
-{
-	/* 
-         * clock_t ticks = clock() - start;
-	 * double msecs = ticks/(double)CLOCKS_PER_SEC*1000.0;
-	 * printf("%s took %g msecs\n", info, msecs);
-         */
-}
 
 struct filename {
 	char *p;
@@ -265,7 +287,7 @@ void filter_files(char *pattern)
 	struct filter_result result;
 	struct filter_result *results;
 	GtkTreeIter iter;
-	clock_t start;
+	timing_t start;
 	const void *filter;
 	filter_func filter_func;
 	filter_destructor destructor = 0;
@@ -292,7 +314,7 @@ void filter_files(char *pattern)
 
 	compare_filter_result(results, results+1);
 
-	start = clock();
+	start = start_timing();
 
 	g_object_ref(G_OBJECT(list_store));
 	gtk_tree_view_set_model(tree_view, 0);
@@ -300,7 +322,7 @@ void filter_files(char *pattern)
 	gtk_list_store_clear(list_store);
 
 	finish_timing(start, "gtk_list_store_clear");
-	start = clock();
+	start = start_timing();
 
 	for (i=0; i<filtered.used; i++) {
 		gtk_list_store_append(list_store, &iter);
@@ -310,7 +332,7 @@ void filter_files(char *pattern)
 	}
 
 	finish_timing(start, "adding filtered data");
-	start = clock();
+	start = start_timing();
 
 	gtk_tree_view_set_model(tree_view, GTK_TREE_MODEL(list_store));
 	g_object_unref(G_OBJECT(list_store));
@@ -471,7 +493,7 @@ static
 void on_entry_changed(GtkEditable *editable,
 		      gpointer data)
 {
-	clock_t start = clock();
+	timing_t start = start_timing();
 
 	char *text = g_strdup(gtk_entry_get_text(GTK_ENTRY(editable)));
 	filter_files(text);
@@ -543,33 +565,33 @@ void setup_signals(void)
 
 int main(int argc, char **argv)
 {
-	clock_t tstart = clock();
+	timing_t tstart = start_timing();
 
 	gtk_init(&argc, &argv);
 	glade_ui = glade_xml_new("filechooser.glade", 0, 0);
 
 	finish_timing(tstart, "gtk initialization");
 
-	tstart = clock();
+	tstart = start_timing();
 
 	top_window = GTK_WINDOW(glade_xml_get_widget(glade_ui, "top-window"));
 	tree_view = GTK_TREE_VIEW(glade_xml_get_widget(glade_ui, "treeview"));
 	name_entry = GTK_ENTRY(glade_xml_get_widget(glade_ui, "name-entry"));
 
 	finish_timing(tstart, "init2");
-	tstart = clock();
+	tstart = start_timing();
 
 	gtk_widget_show_all(GTK_WIDGET(top_window));
 	while (gtk_events_pending())
 		gtk_main_iteration();
 
 	finish_timing(tstart, "initial show");
-	tstart = clock();
+	tstart = start_timing();
 
 	setup_signals();
 
 	finish_timing(tstart, "setup_signals");
-	tstart = clock();
+	tstart = start_timing();
 
 	setup_data();
 

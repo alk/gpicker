@@ -4,6 +4,9 @@ AM_INIT_AUTOMAKE
 AC_CONFIG_FILES([Makefile])
 AC_PROG_CC
 
+AC_ARG_ENABLE(timing, [  --enable-timing	Enable output of timing info on stderr],
+                      [AC_DEFINE([WITH_TIMING], 1, [Output timing info])])
+
 # check for 'check' unit-testing framework
 PKG_CHECK_MODULES([check], [check], [HAVE_CHECK=yes], [
 HAVE_CHECK=no
