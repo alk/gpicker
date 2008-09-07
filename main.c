@@ -650,7 +650,11 @@ int main(int argc, char **argv)
 	finish_timing(tstart, "init2");
 	tstart = start_timing();
 
+	gtk_widget_realize(GTK_WIDGET(top_window));
+	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, gdk_cursor_new(GDK_WATCH));
+
 	gtk_widget_show_all(GTK_WIDGET(top_window));
+
 	while (gtk_events_pending())
 		gtk_main_iteration();
 
@@ -663,6 +667,8 @@ int main(int argc, char **argv)
 	tstart = start_timing();
 
 	setup_data();
+
+	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, gdk_cursor_new(GDK_ARROW));
 
 	finish_timing(tstart, "setup_data");
 
