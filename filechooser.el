@@ -25,6 +25,7 @@
 (defun filechooser-do-find (find-function)
   (let ((file (filechooser-pick *filechooser-project-dir*)))
     (when file
+      (setq file (expand-file-name file *filechooser-project-dir*))
       (funcall find-function file))))
 
 (defun filechooser-find-file ()
