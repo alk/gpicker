@@ -27,6 +27,10 @@
 	(set-buffer-modified-p nil))
       (kill-buffer chooser-buffer))))
 
+(defun filechooser-guess-project-type (dir)
+  (cond ((file-accessible-directory-p (expand-file-name ".git" dir))
+         "git")))
+
 (defun filechooser-set-project-type (type)
   "Sets type of current filechooser project"
   (interactive (list (completing-read "Choose filechooser project type: " '("git" "default")
@@ -37,6 +41,7 @@
   "Selects current project directory for filechooser"
   (interactive "DSelect directory:")
   (cd dir)
+  (setq *filechooser-project-type* (filechooser-guess-project-type dir))
   (setq *filechooser-project-dir* (expand-file-name dir)))
 
 (defun filechooser-do-find (find-function)
