@@ -36,7 +36,7 @@
 
 (defun filechooser-set-project-type (type)
   "Sets type of current filechooser project"
-  (interactive (list (completing-read "Choose filechooser project type: " '("git" "default")
+  (interactive (list (completing-read "Choose filechooser project type: " '("git" "default" "svn")
                                       nil t nil nil "default")))
   (setq *filechooser-project-type* type))
 

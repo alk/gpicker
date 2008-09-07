@@ -107,6 +107,9 @@ int filename_compare(struct filename *a, struct filename *b)
 }
 
 static
+char filenames_delimiter;
+
+static
 void read_filenames(int fd)
 {
 	char *endp;
@@ -120,9 +123,10 @@ void read_filenames(int fd)
 		if (p[0] == '.' && p[1] == '/')
 			p += 2;
 		start = p;
-		while ((ch = *p++))
+		while ((ch = *p++) && ch != filenames_delimiter)
 			if (ch == '/')
 				dirlength = p - start;
+		p[-1] = 0;
 		add_filename(start, dirlength);
 	}
 
@@ -331,6 +335,10 @@ void setup_filenames(void)
 		pipe = popen("find '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*' -a '!' -wholename '*.svn/*' -type f -print0","r");
 	else if (!strcmp(project_type, "git"))
 		pipe = popen("git ls-files --exclude-standard -c -o -z", "r");
+	else if (!strcmp(project_type, "svn")) {
+		filenames_delimiter = '\n';
+		pipe = popen("svn status -v | awk '{print $4}'", "r");
+	}
 
 	if (!pipe) {
 		perror("failed to spawn find");
@@ -393,7 +401,7 @@ void setup_signals(void)
 
 static
 GOptionEntry entries[] = {
-	{"project-type", 't', 0, G_OPTION_ARG_STRING, &project_type, "type of project (default, git)", 0},
+	{"project-type", 't', 0, G_OPTION_ARG_STRING, &project_type, "type of project (default, git, svn)", 0},
 	{0}
 };
 
@@ -413,7 +421,9 @@ void parse_options(int argc, char **argv)
 		fprintf(stderr, "Give me project dir\n");
 		exit(1);
 	}
-	if (project_type && strcmp(project_type, "git") && strcmp(project_type, "default")) {
+	if (project_type && strcmp(project_type, "git")
+	    && strcmp(project_type, "default")
+	    && strcmp(project_type, "svn")) {
 		fprintf(stderr, "Unknown project type specified: %s\n", project_type);
 		exit(1);
 	}
