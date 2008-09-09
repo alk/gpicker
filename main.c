@@ -668,7 +668,7 @@ int main(int argc, char **argv)
 
 	setup_data();
 
-	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, gdk_cursor_new(GDK_ARROW));
+	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, 0);
 
 	finish_timing(tstart, "setup_data");
 
