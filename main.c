@@ -541,7 +541,7 @@ void setup_filenames(void)
 	if (!project_type || !strcmp(project_type, "default"))
 		pipe = popen("find '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*' -a '!' -wholename '*.svn/*' -type f -print0","r");
 	else if (!strcmp(project_type, "git"))
-		pipe = popen("git ls-files --exclude-standard -z", "r");
+		pipe = popen("git ls-files --exclude-standard -c -m -o -z", "r");
 
 	if (!pipe) {
 		perror("failed to spawn find");
