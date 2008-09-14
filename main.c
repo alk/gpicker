@@ -548,7 +548,7 @@ void setup_filenames(void)
 		exit(1);
 	}
 	read_filenames(fileno(pipe));
-	fclose(pipe);
+	pclose(pipe);
 }
 
 static
