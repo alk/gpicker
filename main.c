@@ -337,7 +337,7 @@ void setup_filenames(void)
 		pipe = popen("git ls-files --exclude-standard -c -o -z", "r");
 	else if (!strcmp(project_type, "svn")) {
 		filenames_delimiter = '\n';
-		pipe = popen("svn status -v | awk '{print $4}'", "r");
+		pipe = popen("svn status -v | awk '{print($4 ? $4 : $2)}'", "r");
 	}
 
 	if (!pipe) {
