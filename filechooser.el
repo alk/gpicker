@@ -27,7 +27,8 @@
                         nil))
       (with-current-buffer chooser-buffer
 	(set-buffer-modified-p nil))
-      (kill-buffer chooser-buffer))))
+      (kill-buffer chooser-buffer)
+      (discard-input))))
 
 (defun filechooser-guess-project-type (dir)
   (cond ((file-accessible-directory-p (expand-file-name ".git" dir))
