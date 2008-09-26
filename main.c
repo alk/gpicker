@@ -159,8 +159,6 @@ void filter_files(char *pattern)
 	results = (struct filter_result *)filtered.buffer;
 	qsort(results, filtered.used, sizeof(struct filter_result), (int (*)(const void *, const void *))compare_filter_result);
 
-	compare_filter_result(results, results+1);
-
 	start = start_timing();
 
 	g_object_ref(G_OBJECT(list_store));
