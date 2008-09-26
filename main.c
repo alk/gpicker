@@ -46,9 +46,6 @@ void finish_timing(timing_t start, char *info)
 
 #endif
 
-#define max(a,b) ({__typeof__ (a) ____a = (a); __typeof__ (b) ____b = (b); ____b > ____a ? ____b : ____a; })
-
-
 static GladeXML *glade_ui;
 static GtkWindow *top_window;
 static GtkEntry *name_entry;
