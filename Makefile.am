@@ -1,5 +1,5 @@
 bin_PROGRAMS = filechooser
-filechooser_SOURCES = main.c scorer.c filtration.c vector.c
+filechooser_SOURCES = main.c scorer.c filtration.c vector.c xmalloc.c
 filechooser_LDADD = @gtk2_LIBS@ @libglade_LIBS@
 AM_CFLAGS = -DPKGDATADIR=\"$(pkgdatadir)\" @gtk2_CFLAGS@ @libglade_CFLAGS@
 

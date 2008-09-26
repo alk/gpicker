@@ -10,6 +10,7 @@
 #include <errno.h>
 #include "config.h"
 
+#include "xmalloc.h"
 #include "scorer.h"
 #include "filtration.h"
 #include "vector.h"
@@ -47,30 +48,6 @@ void finish_timing(timing_t start, char *info)
 
 #define max(a,b) ({__typeof__ (a) ____a = (a); __typeof__ (b) ____b = (b); ____b > ____a ? ____b : ____a; })
 
-__attribute__((noreturn))
-static
-void memory_exhausted(void)
-{
-	fputs("memory exhausted", stderr);
-	abort();
-}
-
-static
-void *xmalloc(size_t size)
-{
-	void *rv = malloc(size);
-	if (!rv)
-		memory_exhausted();
-	return rv;
-}
-
-void *xrealloc(void *ptr, size_t size)
-{
-	ptr = realloc(ptr, size);
-	if (!ptr)
-		memory_exhausted();
-	return ptr;
-}
 
 static GladeXML *glade_ui;
 static GtkWindow *top_window;
