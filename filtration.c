@@ -4,6 +4,7 @@
 #include "filtration.h"
 #include "vector.h"
 
+static
 int filter_filename(struct filename *name,
 		    const void *_pattern,
 		    struct filter_result *result,
@@ -31,6 +32,7 @@ struct split_pattern {
 	char *dirname;
 };
 
+static
 int filter_filename_with_dir(struct filename *name,
 			     const void *_pattern,
 			     struct filter_result *result,
@@ -121,3 +123,36 @@ int compare_filter_result(struct filter_result *a, struct filter_result *b)
 		return rv;
 	return filea->dirlength - fileb->dirlength;
 }
+
+struct filter_result *filter_files(char *pattern)
+{
+	struct filter_result *results;
+	const void *filter;
+	filter_func filter_func;
+	filter_destructor destructor = 0;
+	int i;
+
+	filter = prepare_filter(pattern, &filter_func, &destructor);
+
+	vector_clear(&filtered);
+
+	for (i=0; i<nfiles; i++) {
+		struct filter_result result;
+		int passes = filter_func(files + i, filter, &result, 0);
+		struct filter_result *place;
+		if (!passes)
+			continue;
+		place = vector_append(&filtered);
+		result.index = i;
+		*place = result;
+	}
+
+	if (destructor)
+		destructor(filter);
+
+	results = (struct filter_result *)filtered.buffer;
+	qsort(results, filtered.used, sizeof(struct filter_result), (int (*)(const void *, const void *))compare_filter_result);
+
+	return results;
+}
+

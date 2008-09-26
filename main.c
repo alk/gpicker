@@ -100,38 +100,43 @@ char *input_names(int fd, char **endp)
 	return buf;
 }
 
+static
+int filename_compare(struct filename *a, struct filename *b)
+{
+	return strcasecmp(a->p, b->p);
+}
 
 static
-void filter_files(char *pattern)
+void read_filenames(int fd)
 {
-	int i;
-	struct filter_result result;
-	struct filter_result *results;
-	GtkTreeIter iter;
-	timing_t start;
-	const void *filter;
-	filter_func filter_func;
-	filter_destructor destructor = 0;
+	char *endp;
+	char *buf = input_names(fd, &endp);
+	char *p = buf;
 
-	filter = prepare_filter(pattern, &filter_func, &destructor);
-
-	vector_clear(&filtered);
-
-	for (i=0; i<nfiles; i++) {
-		int passes = filter_func(files + i, filter, &result, 0);
-		struct filter_result *place;
-		if (!passes)
-			continue;
-		place = vector_append(&filtered);
-		result.index = i;
-		*place = result;
+	while (p < endp) {
+		int dirlength = 0;
+		char *start;
+		char ch;
+		if (p[0] == '.' && p[1] == '/')
+			p += 2;
+		start = p;
+		while ((ch = *p++))
+			if (ch == '/')
+				dirlength = p - start;
+		add_filename(start, dirlength);
 	}
 
-	if (destructor)
-		destructor(filter);
+	qsort(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare);
+}
 
-	results = (struct filter_result *)filtered.buffer;
-	qsort(results, filtered.used, sizeof(struct filter_result), (int (*)(const void *, const void *))compare_filter_result);
+static
+void filter_tree_view(char *pattern)
+{
+	struct filter_result *results = filter_files(pattern);
+
+	GtkTreeIter iter;
+	timing_t start;
+	int i;
 
 	start = start_timing();
 
@@ -164,35 +169,6 @@ void filter_files(char *pattern)
 		gtk_tree_selection_select_path(sel, path);
 		gtk_tree_path_free(path);
 	}
-}
-
-static
-int filename_compare(struct filename *a, struct filename *b)
-{
-	return strcasecmp(a->p, b->p);
-}
-
-static
-void read_filenames(int fd)
-{
-	char *endp;
-	char *buf = input_names(fd, &endp);
-	char *p = buf;
-
-	while (p < endp) {
-		int dirlength = 0;
-		char *start;
-		char ch;
-		if (p[0] == '.' && p[1] == '/')
-			p += 2;
-		start = p;
-		while ((ch = *p++))
-			if (ch == '/')
-				dirlength = p - start;
-		add_filename(start, dirlength);
-	}
-
-	qsort(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare);
 }
 
 static
@@ -329,7 +305,7 @@ void on_entry_changed(GtkEditable *editable,
 	timing_t start = start_timing();
 
 	char *text = g_strdup(gtk_entry_get_text(GTK_ENTRY(editable)));
-	filter_files(text);
+	filter_tree_view(text);
 	free(text);
 
 	finish_timing(start, "filtration");

@@ -8,16 +8,6 @@ struct filename {
 	int dirlength;
 };
 
-int filter_filename(struct filename *name,
-		    const void *_pattern,
-		    struct filter_result *result,
-		    unsigned *ematch);
-
-int filter_filename_with_dir(struct filename *name,
-			     const void *_pattern,
-			     struct filter_result *result,
-			     unsigned *ematch);
-
 typedef void (*filter_destructor)(const void *);
 typedef int (*filter_func)(struct filename *, const void *, struct filter_result *, unsigned *);
 
@@ -25,5 +15,6 @@ const void *prepare_filter(const char *filter, filter_func *func, filter_destruc
 
 int compare_filter_result(struct filter_result *a, struct filter_result *b);
 
+struct filter_result *filter_files(char *pattern);
 
 #endif
