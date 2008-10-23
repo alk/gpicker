@@ -30,11 +30,22 @@ void	_assert_scores(char *file, int line, int expected_score, char *string, char
 				_fail_unless(0, file, line, 0,
 					     "match differs in pos %d. Expected %d, got %d",
 					     i, expected_match[i], match[i], 0);
-	fail_unless(1, __FILE__, __LINE__, "cannot happen", 0);
+	_fail_unless(1, __FILE__, __LINE__, "cannot happen", 0);
 }
 
 #define assert_scores(score, string, pattern, match) _assert_scores(__FILE__, __LINE__, (score), (string), (pattern), (match))
 #define M(...) ((unsigned[]){__VA_ARGS__})
+
+START_TEST(test_empty_string)
+{
+	int score;
+
+	qry.pattern = "a";
+	score = score_string("", &qry, 0, 0);
+
+	fail_unless(score == -1, NULL);
+}
+END_TEST
 
 START_TEST(test_capital_pattern_chars_work)
 {
@@ -46,7 +57,7 @@ START_TEST(test_char_after_delimiter_handling)
 {
 	/* char right after delimiter must match start of word */
 	assert_scores(0x200400, "some_owo-word", "s-wo", M(0,4,9,10));
-//	assert_scores(0x200400, "some_owoWord", "s-wo", M(0,4,9,10));
+	assert_scores(0x200400, "some_owoWord", "s-wo", M(0,4,8,9));
 }
 END_TEST
 
@@ -65,10 +76,15 @@ END_TEST
 
 START_TEST(test_slash_handling)
 {
-	/* 'ar' in pattern should not match chars with '/' between them */
-//	assert_scores(0x200201, "activerecord/lib/active_record/base.rb", "ar/b", M(17,24,30,31));
+	qry.right_match = 1;
+	assert_scores(0x100201, "activerecord/lib/active_record", "ar", M(17,24));
+	qry.right_match = 0;
+	assert_scores(0x100000, "base.rb", "b", M(0));
 	/* '/' works */
 	assert_scores(0x200201, "activerecord/lib/octive_record/base.rb", "ar/b", M(0,24,30,31));
+	qry.right_match = 1;
+	assert_scores(0x200201, "activerecord/lib/octive_record/base.rb", "ar/b", M(0,24,30,31));
+	qry.right_match = 0;
 }
 END_TEST
 
@@ -115,6 +131,7 @@ Suite *scorer_suite (void)
 	T(test_single_char_matches_work);
 	T(test_slash_handling);
 	T(test_right_match);
+	T(test_empty_string);
 
 	return s;
 #undef T
