@@ -1,4 +1,4 @@
-AC_INIT([filechooser],0.6)
+AC_INIT([gpicker],0.6)
 AC_CONFIG_HEADERS(config.h)
 AM_INIT_AUTOMAKE
 AC_CONFIG_FILES([Makefile])

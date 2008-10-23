@@ -15,7 +15,7 @@ config.log
 config.status
 configure
 depcomp
-filechooser
+gpicker
 install-sh
 missing
 scorer-tests
