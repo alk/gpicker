@@ -132,11 +132,15 @@ void read_filenames(int fd)
 static
 void filter_tree_view(char *pattern)
 {
-	struct filter_result *results = filter_files(pattern);
+	struct filter_result *results;
 
 	GtkTreeIter iter;
 	timing_t start;
-	int i;
+	int i, n;
+
+	start = start_timing();
+	results = filter_files(pattern);
+	finish_timing(start, "filter_files");
 
 	start = start_timing();
 
@@ -148,7 +152,10 @@ void filter_tree_view(char *pattern)
 	finish_timing(start, "gtk_list_store_clear");
 	start = start_timing();
 
-	for (i=0; i<filtered.used; i++) {
+	n = filtered.used;
+	if (n > 10000)
+		n = 10000;
+	for (i=0; i<n; i++) {
 		gtk_list_store_append(list_store, &iter);
 		gtk_list_store_set(list_store, &iter,
 				   0, results[i].index,
