@@ -1,0 +1,31 @@
+Things to think/implement later:
+- introduce mtime or pick history in sorting heuristics.
+  Example is picking 'arch/signal' on linux src for x86 which is not on top.
+  Even for 'a/x86/signal' and 'x86/sig.c' 'right' files (signal-32.c and signal-64.c) are not on top (but close).
+
+- support exclude patterns.
+  This can be a low-tech solution for above mentioned problem of many arch subtrees in linux.
+
+- allow picking several files. Useful for opening .c and .h simultaneously
+
+- 'find at point'. pre-fill name entry with text under emacs' point. Do it intelligently on emacs side.
+
+- support more vcs types, so that ignored files are ignored
+-- make it user-configurable via config file
+
+- support caching filelist compactly in single file
+  This will boost performance on cold dentry cache, but otherwise doubtful (Linux's VFS is fast enough).
+-- consider automatic cache updating by looking at directories' mtimes
+
+- work on filtering performance. On linux kernel it can sometimes be around 0.5 second.
+  Looks like GTK issue. Consider adding tail of filelist in background.
+
+DONE - (low-tech alternative of previous item) limit number of items in listview with reasonable value
+  (currently 1E4). This fixes filtration times on large projects.
+-- support turning limit off
+
+- load filelist in separate thread and support filtration while it's loading.
+  Useful on cold project tree and enables usage of this tool for casual file-finding use.
+  Mostly trivial, except the problem of preserving currently selected item.
+  If we keep it we can jump in the middle of filelist, if we don't we can loose current selection.
+  We should probably keep, but only if there is selection. And make no initial selection.
