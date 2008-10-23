@@ -1,3 +1,12 @@
+;;
+;; To setup this add lines like this to your .emacs
+;;
+;; (load (expand-file-name "/usr/local/share/gpicker/gpicker.el"))
+;; (global-set-key [8388710] 'gpicker-find-file)
+;; (global-set-key [?\C-x ?4 8388710] 'gpicker-find-file-other-window)
+;; (global-set-key [?\C-x ?5 8388710] 'gpicker-find-file-other-frame)
+;;
+;; this will bind super-f to gpicker-find-file
 
 (defvar *gpicker-path* "gpicker")
 (defvar *gpicker-project-dir* nil)
