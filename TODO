@@ -1,0 +1,2 @@
+logging errors to /tmp/fc-errors.log is questionable. Make it
+   configurable.
