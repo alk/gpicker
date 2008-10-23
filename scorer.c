@@ -65,6 +65,9 @@ int score_string(const char *string,
 	if (pat_length == 0)
 		return 0;
 
+	if (string_length == 0)
+		return -1;
+
 	if (pat_length > MAX_PAT_LENGTH)
 		return -1;
 
