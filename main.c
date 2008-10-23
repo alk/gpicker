@@ -402,7 +402,7 @@ void parse_options(int argc, char **argv)
 {
 	GError *error = 0;
 	GOptionContext *context;
-	context = g_option_context_new("PROJECT-DIR-PATH - quickly pick file from a project");
+	context = g_option_context_new("PROJECT-DIR-PATH - quickly pick a file from the project");
 	g_option_context_add_main_entries(context, entries, 0);
 	g_option_context_add_group(context, gtk_get_option_group(TRUE));
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
