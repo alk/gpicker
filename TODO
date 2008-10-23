@@ -2,3 +2,4 @@
    configurable.
 * provide better window title
 * add licence preambula for every source file
+* running picker without args should display usage
