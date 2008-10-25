@@ -294,6 +294,22 @@ static
 char *project_dir;
 
 static
+void set_window_title(void)
+{
+	char work_dir[PATH_MAX];
+	const gchar *title;
+	char *dirptr = work_dir;
+
+	getcwd(work_dir, sizeof(work_dir));
+
+	if (!work_dir[0])
+		return;
+
+	title = g_strdup_printf("%s - pick a file", work_dir);
+	gtk_window_set_title(top_window, title);
+}
+
+static
 void setup_filenames(void)
 {
 	int rv = chdir(project_dir);
@@ -303,6 +319,8 @@ void setup_filenames(void)
 		perror("cannot chdir to project directory");
 		exit(1);
 	}
+
+	set_window_title();
 
 	if (!project_type || !strcmp(project_type, "default"))
 		pipe = popen("find '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*' -a '!' -wholename '*.svn/*' -type f -print0","r");
