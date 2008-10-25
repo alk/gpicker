@@ -153,8 +153,8 @@ void filter_tree_view(char *pattern)
 	start = start_timing();
 
 	n = filtered.used;
-	if (n > 10000)
-		n = 10000;
+	if (n > 1000)
+		n = 1000;
 	for (i=0; i<n; i++) {
 		gtk_list_store_append(list_store, &iter);
 		gtk_list_store_set(list_store, &iter,
