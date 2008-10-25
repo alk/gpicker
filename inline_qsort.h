@@ -1,7 +1,7 @@
 #ifndef INLINE_QSORT_H
 #define INLINE_QSORT_H
 
-/* This was taken from GNU libc and is mostly unchanged -- Aliakey Kandratsenka */
+/* This was taken from GNU libc and is mostly unchanged -- Aliakey Kandratsenka. 2008-10-26 */
 
 /* Copyright (C) 1991,1992,1996,1997,1999,2004 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
