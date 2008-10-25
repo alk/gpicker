@@ -1,8 +1,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <glib.h>
+#include "config.h"
+#include "inline_qsort.h"
 #include "filtration.h"
 #include "vector.h"
+#include "timing.h"
 
 static
 int filter_filename(struct filename *name,
@@ -130,12 +133,18 @@ struct filter_result *filter_files(char *pattern)
 	const void *filter;
 	filter_func filter_func;
 	filter_destructor destructor = 0;
+	timing_t start;
 	int i;
 
+	start = start_timing();
 	filter = prepare_filter(pattern, &filter_func, &destructor);
+	finish_timing(start, "prepare_filter");
 
+	start = start_timing();
 	vector_clear(&filtered);
+	finish_timing(start, "vector_clear");
 
+	start = start_timing();
 	for (i=0; i<nfiles; i++) {
 		struct filter_result result;
 		int passes = filter_func(files + i, filter, &result, 0);
@@ -146,13 +155,17 @@ struct filter_result *filter_files(char *pattern)
 		result.index = i;
 		*place = result;
 	}
+	finish_timing(start, "actual filtration");
 
+	start = start_timing();
 	if (destructor)
 		destructor(filter);
+	finish_timing(start, "destructor");
 
+	start = start_timing();
 	results = (struct filter_result *)filtered.buffer;
-	qsort(results, filtered.used, sizeof(struct filter_result), (int (*)(const void *, const void *))compare_filter_result);
+	_quicksort(results, filtered.used, sizeof(struct filter_result), (int (*)(const void *, const void *))compare_filter_result);
+	finish_timing(start, "qsort");
 
 	return results;
 }
-
