@@ -400,12 +400,14 @@ void parse_options(int argc, char **argv)
 	context = g_option_context_new("PROJECT-DIR-PATH - quickly pick a file from the project");
 	g_option_context_add_main_entries(context, entries, 0);
 	g_option_context_add_group(context, gtk_get_option_group(TRUE));
+
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
 		fprintf(stderr, "option parsing failed: %s\n", error->message);
 		exit(1);
 	}
 	if (argc < 2) {
-		fprintf(stderr, "Give me project dir\n");
+		fprintf(stderr, "I need a project path\n");
+		fputs(g_option_context_get_help(context, TRUE, NULL), stderr);
 		exit(1);
 	}
 	if (project_type && strcmp(project_type, "git") && strcmp(project_type, "default")) {
