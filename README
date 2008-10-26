@@ -19,13 +19,15 @@ It was inspired by class finding facility of IntelliJ IDEA and
 It is language-agnostic and supports matching directory names too.
 Read on for details.
 
+It is usable as a standalone program, but it was created to be used by
+editors/IDEs. Currently only Emacs intergration is provided. See
+comments on top of gpicker.el for installation notes. This README
+describes general usage concepts.
+
 To place 'correct' matches on top gpicker uses sophisticated scoring
 heuristics. Scoring is implemented by efficient dynamic programming
 algorithm which makes filtration and ordering very fast. The scoring
 details are described below.
-
-Emacs integration package is included. See comments on top of gpicker.el
-for installation notes.
 
 
 Performance notes
