@@ -1,12 +1,51 @@
+;;; gpicker.el --- gpicker integration for Emacs
+
+;; Copyright (C) 2008 Aliaksey Kandratsenka
+
+;; Author: Aliaksey Kandratsenka <alk@tut.by>
+;; Version: 1.0
+;; Keywords: autocompletion
+
+;; This program is free software: you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 3 of the
+;; License, or (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see
+;; `http://www.gnu.org/licenses/'.
+
+;;; Commentary
 ;;
-;; To setup this add lines like this to your .emacs
+;; Arrange loading of this file. One way is to add
 ;;
-;; (load (expand-file-name "/usr/local/share/gpicker/gpicker.el"))
-;; (global-set-key [8388710] 'gpicker-find-file)
-;; (global-set-key [?\C-x ?4 8388710] 'gpicker-find-file-other-window)
-;; (global-set-key [?\C-x ?5 8388710] 'gpicker-find-file-other-frame)
+;;   (load "/usr/local/share/gpicker/gpicker.el")
 ;;
-;; this will bind super-f to gpicker-find-file
+;; to your .emacs
+;;
+;; Run `gpicker-visit-project' to specify project directory.
+;;
+;; Open files by running `gpicker-find-file' or
+;; `gpicker-find-file-other-window' or
+;; `gpicker-find-file-other-frame'.
+;;
+;; I prefer to globally bind them to Super-f, C-x 4 Super-f and
+;; C-x 5 Super-f correspondingly. You can do same by adding the following
+;; elisp snippet to your .emacs
+;;
+;;   (global-set-key [8388710] 'gpicker-find-file)
+;;   (global-set-key [?\C-x ?4 8388710] 'gpicker-find-file-other-window)
+;;   (global-set-key [?\C-x ?5 8388710] 'gpicker-find-file-other-frame)
+;;
+;; On most keyboards Super is a key with flag between Ctrl and Alt. On
+;; mac keyboards it's Command key.
+
+;;; Code
 
 (defvar *gpicker-path* "gpicker")
 (defvar *gpicker-project-dir* nil)
@@ -74,3 +113,5 @@
 (defun gpicker-find-file-other-frame ()
   (interactive)
   (gpicker-do-find #'find-file-other-frame))
+
+(provide 'gpicker)
