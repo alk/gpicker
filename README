@@ -1,0 +1,116 @@
+gpicker version 1.0
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+
+What is gpicker?
+----------------
+
+gpicker is a program that allows you to quickly and conveniently pick
+file in a (possibly very large) project. You type significant letters
+of file name (typically from the start of words) and gpicker provides
+you with a list of files you most likely mean to pick. The program
+filters and orders project's list of files in real-time as you type.
+
+It was inspired by class finding facility of IntelliJ IDEA and
+'Command-T' feature of TextMate, but it's in many ways much better.
+It is language-agnostic and supports matching directory names too.
+Read on for details.
+
+To place 'correct' matches on top gpicker uses sophisticated scoring
+heuristics. Scoring is implemented by efficient dynamic programming
+algorithm which makes filtration and ordering very fast. The scoring
+details are described below.
+
+Emacs integration package is included. See comments on top of gpicker.el
+for installation notes.
+
+
+Performance notes
+-----------------
+
+Don't judge gpicker's performance by first run. gpicker scans project
+for list of files on every start. This can take a while on first run. But
+subsequent runs will hit OS's directory entries cache and will
+start almost instantly.
+
+Real-time filtration should be snappy on most, but largest
+projects. At least if your CPU is not very old.
+
+
+Usage in examples
+-----------------
+
+When I want to pick 'vendor/rails/activerecord/lib/active_record/base.rb'
+inside rails project I can type 'ba' or 'bas'. But it won't be
+displayed on top, because rails has several files named base.rb in
+different directories. I can type 'ar/ba' (or even 'ar/b'). This will
+match 'ar' against directory name and 'ba' against basename and will
+place 'correct' file on top.
+
+To pick source of java.lang.ClassLoader class inside openjdk I can try
+'cload'. There a many matches and correct file is not in top 5 (but
+it's in top 10). I can try placing emphasis on start of words by
+capitalizing them - 'cLoa' or 'CLoa'. But that removes only one extra
+match. I can add directory name pattern to better convey my
+intention. 'lan/cLo' is sufficient to find correct file on second
+place. It can be selected via arrow keys now. And 'cl/la/cLo' (added
+another part of directory - 'classes') or 'lan/cLo.j' (added
+extension) is enough to place it first. 'clloderj' works too. Notice
+skipped 'a' from 'loader'.
+
+There are two ways to emphasize start of words. One is capitalizing
+first letters. 'aRe' or 'AR' will give large score to 'active_record',
+'active-record', 'active.record' and 'ActiveRecord'.
+
+Second way is placing matching delimiters before first letter.
+'b.r' will give large score for 'base.rb', because match of 'r' after
+delimiter is considered start of the word. Delimiters '_' and '-' are
+interchangeable. So association_proxy.rb can be matched with 'a-pro'
+and with 'a_pro' (and with 'aPro' of course). That was done because
+'-' is easier to type.
+
+Empty basename patterns can be used to browse list of files in some
+directory. For example 'are/con-ad/' can be used to see contents of
+vendor/rails/activerecord/lib/active_record/connection_adapters/.
+
+
+Filtering & scoring details
+---------------------------
+
+Only matching entries pass through filter. In simple words, there is
+a match between given pattern and name if and only if it is possible
+to transform name to pattern by removing characters from it without
+changing order of remaining characters.
+
+Matching is case insensitive, though capital letters both in pattern
+and in name are additionally treated as word starts. Letters after
+delimiters also count as word starts.
+
+Smart ordering of matches is based on matches' scores. Scoring rules
+are quite simple. Each character match is given some score and those
+are summed for total match score. Match on word start is given
+0x100000 points if matching pattern character is on word start too,
+and 0x201 points otherwise. Match is given 0x400 points if it's
+adjacent to previous match. And all other matches are given 0 points.
+
+The idea is that 'proper' word start matches are most precious. All
+other matches score significantly less. Among those substring matches
+score about twice as much as non-proper word start matches. And
+completely wild matches do not score at all.
+
+If there are several matches for given name then the scoring algorithm
+picks leftmost (or rightmost, for directory name matches) with maximal
+score.
+
+Directory names and basenames are scored separately and directory name
+score is considered only when basename scores are equal.
+
+For typically short patterns it's not unlikely to have a group of
+names with maximal score. So great attention is given to ordering
+names with equal scores. Current ordering heuristic takes
+compactness of match into account (minimization of last matching
+character index) and length of names. See code in filtration.c for
+exact details.
