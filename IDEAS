@@ -14,14 +14,15 @@ Things to think/implement later:
 -- make it user-configurable via config file
 
 - support caching filelist compactly in single file
-  This will boost performance on cold dentry cache, but otherwise doubtful (Linux's VFS is fast enough).
+  This will boost performance on cold dentry cache, or on very large projects (openjdk)
+  (usually, Linux's VFS is fast enough).
 -- consider automatic cache updating by looking at directories' mtimes
 
 - work on filtering performance. On linux kernel it can sometimes be around 0.5 second.
   Looks like GTK issue. Consider adding tail of filelist in background.
 
 DONE - (low-tech alternative of previous item) limit number of items in listview with reasonable value
-  (currently 1E4). This fixes filtration times on large projects.
+  (currently 1E3). This fixes filtration times on large projects.
 -- support turning limit off
 
 - load filelist in separate thread and support filtration while it's loading.
@@ -29,3 +30,6 @@ DONE - (low-tech alternative of previous item) limit number of items in listview
   Mostly trivial, except the problem of preserving currently selected item.
   If we keep it we can jump in the middle of filelist, if we don't we can loose current selection.
   We should probably keep, but only if there is selection. And make no initial selection.
+
+- Consider not matching '-' and '_' delimiters, but only using them as word start markers.
+  This will allow using '-' for matching camelcase names.
