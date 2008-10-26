@@ -50,6 +50,7 @@
 (defvar *gpicker-path* "gpicker")
 (defvar *gpicker-project-dir* nil)
 (defvar *gpicker-project-type* nil)
+(defvar *gpicker-errors-log* (expand-file-name "~/.gpicker-errors.log"))
 
 (defun gpicker-pick (dir)
   (unless *gpicker-project-dir*
@@ -57,7 +58,7 @@
   (let ((chooser-buffer (generate-new-buffer "*gpicker*")))
     (unwind-protect (let ((status (call-process *gpicker-path*
                                                 nil ;; input
-                                                (list chooser-buffer "/tmp/gpicker-errors.log")
+                                                (list chooser-buffer *gpicker-errors-log*)
                                                 nil ;; dont redisplay
                                                 "-t"
                                                 (or *gpicker-project-type* "default")
@@ -71,7 +72,7 @@
                         (save-excursion
                           (set-buffer "*Messages*")
                           (goto-char (point-max))
-                          (insert-file-contents "/tmp/gpicker-errors.log"))
+                          (insert-file-contents *gpicker-errors-log*))
                         nil))
       (with-current-buffer chooser-buffer
 	(set-buffer-modified-p nil))
