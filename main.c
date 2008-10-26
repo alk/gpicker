@@ -405,7 +405,7 @@ void setup_signals(void)
 
 static
 GOptionEntry entries[] = {
-	{"project-type", 't', 0, G_OPTION_ARG_STRING, &project_type, "type of project (default, git)", 0},
+	{"project-type", 't', 0, G_OPTION_ARG_STRING, &project_type, "respect ignored files for given kind of VCS (default, git)", 0},
 	{0}
 };
 
