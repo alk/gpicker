@@ -16,6 +16,5 @@ AM_CONDITIONAL([HAVE_CHECK], [test x$HAVE_CHECK = xyes])
 
 PKG_CHECK_MODULES([gtk2], [gtk+-2.0 >= 2.8])
 PKG_CHECK_MODULES([glib2], [glib-2.0 >= 2.14])
-PKG_CHECK_MODULES([libglade], [libglade-2.0])
 
 AC_OUTPUT
