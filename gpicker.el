@@ -50,7 +50,7 @@
 (defvar *gpicker-path* "gpicker")
 (defvar *gpicker-project-dir* nil)
 (defvar *gpicker-project-type* nil)
-(defvar *gpicker-errors-log* (expand-file-name "~/.gpicker-errors.log"))
+(defvar *gpicker-errors-log* (expand-file-name "~/gpicker-errors.log"))
 
 (defun gpicker-pick (dir)
   (unless *gpicker-project-dir*
@@ -74,6 +74,7 @@
                           (goto-char (point-max))
                           (insert-file-contents *gpicker-errors-log*))
                         nil))
+      (delete-file *gpicker-errors-log*)
       (with-current-buffer chooser-buffer
 	(set-buffer-modified-p nil))
       (kill-buffer chooser-buffer)
