@@ -67,8 +67,7 @@
                           (save-excursion
                             (set-buffer chooser-buffer)
                             (read (buffer-string)))
-                        (with-current-buffer (get-buffer-create "*Messages*")
-                          (message "gpicker exited with status %d" status))
+                        (message "gpicker exited with status %d" status)
                         (save-excursion
                           (set-buffer "*Messages*")
                           (goto-char (point-max))
