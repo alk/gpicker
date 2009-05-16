@@ -218,8 +218,8 @@ void filter_tree_view(char *pattern)
 	start = start_timing();
 
 	n = filtered.used;
-	if (n > 1000)
-		n = 1000;
+	if (n > FILTER_LIMIT)
+		n = FILTER_LIMIT;
 	for (i=0; i<n; i++) {
 		gtk_list_store_append(list_store, &iter);
 		gtk_list_store_set(list_store, &iter,
@@ -259,7 +259,7 @@ void cell_data_func(GtkTreeViewColumn *col,
 		const char *pattern = gtk_entry_get_text(GTK_ENTRY(name_entry));
 		int patlen = strlen(pattern);
 		unsigned match[patlen];
-		const void *filter;
+		void *filter;
 		filter_func filter_func;
 		filter_destructor destructor = 0;
 		struct filter_result result;

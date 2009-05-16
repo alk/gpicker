@@ -24,16 +24,22 @@
 #include "vector.h"
 #include "timing.h"
 
+struct simple_filter_state {
+	struct scorer_query query;
+	struct prepared_pattern *prep;
+};
+
 static
 int filter_filename(struct filename *name,
-		    const void *_pattern,
+		    const void *_state,
 		    struct filter_result *result,
 		    unsigned *ematch)
 {
-	const char *pattern = _pattern;
-	int patlen = strlen(pattern);
+	const struct simple_filter_state *state = _state;
+	unsigned patlen = state->prep->pat_length;
 	unsigned match[patlen];
-	int score = score_simple_string(name->p + name->dirlength, pattern, match);
+	const char *string = name->p + name->dirlength;
+	int score = score_string_prepared(string, &state->query, state->prep, strlen(string), match);
 	if (score < 0)
 		return 0;
 	memset(result, 0, sizeof(*result));
@@ -45,6 +51,14 @@ int filter_filename(struct filename *name,
 			ematch[i] = match[i] + name->dirlength;
 	}
 	return 1;
+}
+
+static
+void free_simple_filter_state(struct simple_filter_state *p) {
+	if (!p)
+		return;
+	free_prepared_pattern(p->prep);
+	free(p);
 }
 
 struct split_pattern {
@@ -96,7 +110,7 @@ int filter_filename_with_dir(struct filename *name,
 }
 
 static
-void destroy_filter_with_dir(const void *data)
+void destroy_filter_with_dir(void *data)
 {
 	struct split_pattern *pattern = (struct split_pattern *)data;
 	free(pattern->basename);
@@ -104,13 +118,17 @@ void destroy_filter_with_dir(const void *data)
 	free(pattern);
 }
 
-const void *prepare_filter(const char *filter, filter_func *func, filter_destructor *destructor)
+void *prepare_filter(const char *filter, filter_func *func, filter_destructor *destructor)
 {
 	char *last_slash = strrchr(filter, '/');
 	if (!last_slash) {
-		*destructor = NULL;
+		*destructor = (filter_destructor)free_simple_filter_state;
 		*func = filter_filename;
-		return filter;
+		struct simple_filter_state *state = malloc(sizeof(struct simple_filter_state));
+		state->query.pattern = filter;
+		state->query.right_match = 0;
+		state->prep = prepare_pattern(&state->query);
+		return state;
 	} else {
 		*destructor = destroy_filter_with_dir;
 		*func = filter_filename_with_dir;
@@ -147,7 +165,7 @@ int compare_filter_result(struct filter_result *a, struct filter_result *b)
 struct filter_result *filter_files(char *pattern)
 {
 	struct filter_result *results;
-	const void *filter;
+	void *filter;
 	filter_func filter_func;
 	filter_destructor destructor = 0;
 	timing_t start;
@@ -181,8 +199,12 @@ struct filter_result *filter_files(char *pattern)
 
 	start = start_timing();
 	results = (struct filter_result *)filtered.buffer;
-	_quicksort(results, filtered.used, sizeof(struct filter_result), (int (*)(const void *, const void *))compare_filter_result);
+	_quicksort_top(results, filtered.used, sizeof(struct filter_result), (int (*)(const void *, const void *))compare_filter_result, results + FILTER_LIMIT);
 	finish_timing(start, "qsort");
+
+#if WITH_TIMING
+	fprintf(stderr, "Result-set size is %d\n", filtered.used);
+#endif
 
 	return results;
 }
