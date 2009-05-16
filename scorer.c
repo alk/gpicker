@@ -59,21 +59,70 @@ char normalize_char(char ch, unsigned *is_delimiter)
 
 #define MAX_PAT_LENGTH 32
 
-int score_string(const char *string,
-		 const struct scorer_query *query,
-		 const unsigned string_length,
-		 unsigned* match)
+static
+void initialize_prepared_pattern(const char *pattern,
+				 struct prepared_pattern *rv)
+{
+	unsigned previous_delimiter = 1;
+	int i;
+
+	for (i=0; i<rv->pat_length; i++) {
+		char ch = pattern[i];
+		rv->start_of_pattern_word[i] = previous_delimiter || ('A' <= ch && ch <= 'Z');
+		rv->translated_pattern[i] = normalize_char(ch, &previous_delimiter);
+	}
+}
+
+struct prepared_pattern *prepare_pattern(const struct scorer_query *query)
+{
+	const char *pattern = query->pattern;
+	const unsigned pat_length = strlen(pattern);
+
+	if (pat_length > MAX_PAT_LENGTH)
+		return 0;
+
+	char *start_of_pattern_word = pat_length ? malloc(pat_length) : 0;
+	char *translated_pattern = pat_length ? malloc(pat_length) : 0;
+
+	struct prepared_pattern *rv = malloc(sizeof(struct prepared_pattern));
+	rv->translated_pattern = translated_pattern;
+	rv->start_of_pattern_word = start_of_pattern_word;
+	rv->pat_length = pat_length;
+
+	if (pat_length)
+		initialize_prepared_pattern(pattern, rv);
+	return rv;
+}
+
+void free_prepared_pattern(struct prepared_pattern *p)
+{
+	if (!p)
+		return;
+	free(p->start_of_pattern_word);
+	free(p->translated_pattern);
+	free(p);
+}
+
+int score_string_prepared(const char *string,
+			  const struct scorer_query *query,
+			  const struct prepared_pattern *prepared_pattern,
+			  const unsigned string_length,
+			  unsigned* match)
 {
 	struct position {
 		int this_score;
 		int score;
 		int amount;
 	};
+
+	if (!prepared_pattern)
+		return -1;
+
 	const char *pattern = query->pattern;
-	const unsigned pat_length = strlen(pattern);
+	const unsigned pat_length = prepared_pattern->pat_length;
 	struct position state[string_length][MAX_PAT_LENGTH];
-	unsigned start_of_pattern_word[pat_length];
-	char translated_pattern[pat_length];
+	char *start_of_pattern_word = prepared_pattern->start_of_pattern_word;
+	char *translated_pattern = prepared_pattern->translated_pattern;
 	unsigned i;
 	unsigned k;
 	unsigned previous_delimiter;
@@ -85,19 +134,10 @@ int score_string(const char *string,
 	if (string_length == 0)
 		return -1;
 
-	if (pat_length > MAX_PAT_LENGTH)
-		return -1;
-
 	dprintf("scoring string '%.*s' for pattern '%s'\n", string_length, string, pattern);
 
 	memset(state, -1, sizeof(state));
 
-	previous_delimiter = 1;
-	for (i=0; i<pat_length; i++) {
-		char ch = pattern[i];
-		start_of_pattern_word[i] = previous_delimiter || ('A' <= ch && ch <= 'Z');
-		translated_pattern[i] = normalize_char(ch, &previous_delimiter);
-	}
 	previous_delimiter = 0;
 
 	for (i=0; i<string_length; i++) {
@@ -185,6 +225,45 @@ int score_string(const char *string,
 	}
 
 	return score;
+}
+
+int score_string(const char *string,
+		 const struct scorer_query *query,
+		 const unsigned string_length,
+		 unsigned* match)
+{
+	const char *pattern = query->pattern;
+	const unsigned pat_length = strlen(pattern);
+	char start_of_pattern_word[pat_length];
+	char translated_pattern[pat_length];
+	unsigned i;
+	unsigned previous_delimiter;
+
+	if (pat_length == 0)
+		return 0;
+
+	if (string_length == 0)
+		return -1;
+
+	if (pat_length > MAX_PAT_LENGTH)
+		return -1;
+
+
+	previous_delimiter = 1;
+	for (i=0; i<pat_length; i++) {
+		char ch = pattern[i];
+		start_of_pattern_word[i] = previous_delimiter || ('A' <= ch && ch <= 'Z');
+		translated_pattern[i] = normalize_char(ch, &previous_delimiter);
+	}
+	previous_delimiter = 0;
+
+	struct prepared_pattern p = {
+		.translated_pattern = translated_pattern,
+		.start_of_pattern_word = start_of_pattern_word,
+		.pat_length = pat_length
+	};
+
+	return score_string_prepared(string, query, &p, string_length, match);
 }
 
 int score_simple_string(const char *string, const char *pattern, unsigned *match)
