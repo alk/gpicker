@@ -2,6 +2,7 @@
 #define INLINE_QSORT_H
 
 /* This was taken from GNU libc and is mostly unchanged -- Aliakey Kandratsenka. 2008-10-26 */
+/* 2009-05-15 - alk - Transformed to top-sort */
 
 /* Copyright (C) 1991,1992,1996,1997,1999,2004 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
@@ -34,8 +35,8 @@
 #define SWAP(a, b, size)						      \
   do									      \
     {									      \
-      register size_t __size = (size);					      \
-      register char *__a = (a), *__b = (b);				      \
+      size_t __size = (size);					      \
+      char *__a = (a), *__b = (b);				      \
       do								      \
 	{								      \
 	  char __tmp = *__a;						      \
@@ -46,7 +47,7 @@
 
 /* Discontinue quicksort algorithm when partition gets below this size.
    This particular magic number was chosen to work best on a Sun 4/260. */
-#define MAX_THRESH 4
+#define MAX_THRESH 10
 
 /* Stack node declarations used to store unfulfilled partition obligations. */
 typedef struct
@@ -61,7 +62,13 @@ typedef struct
    upper bound for log (total_elements):
    bits per byte (CHAR_BIT) * sizeof(size_t).  */
 #define STACK_SIZE	(CHAR_BIT * sizeof(size_t))
-#define PUSH(low, high)	((void) ((top->lo = (low)), (top->hi = (high)), ++top))
+#define PUSH(low, high) do { \
+		top->lo = (low);		\
+		top->hi = (high);		\
+		if ((void *)top->lo <= limit)	\
+			++top;			\
+	} while (0);
+
 #define	POP(low, high)	((void) (--top, (low = top->lo), (high = top->hi)))
 #define	STACK_NOT_EMPTY	(stack < top)
 
@@ -90,9 +97,9 @@ typedef struct
       smaller partition.  This *guarantees* no more than log (total_elems)
       stack size is needed (actually O(1) in this case)!  */
 static inline
-void _quicksort (void *const pbase, size_t total_elems, size_t size, __compar_fn_t cmp)
+void _quicksort_top (void *const pbase, size_t total_elems, size_t size, __compar_fn_t cmp, void *const limit)
 {
-  register char *base_ptr = (char *) pbase;
+  char *base_ptr = (char *) pbase;
 
   const size_t max_thresh = MAX_THRESH * size;
 
@@ -194,6 +201,9 @@ void _quicksort (void *const pbase, size_t total_elems, size_t size, __compar_fn
               PUSH (left_ptr, hi);
               hi = right_ptr;
             }
+
+	  if (__builtin_expect((STACK_NOT_EMPTY != 0), 1) && (void *)lo > limit)
+            POP (lo, hi);
         }
     }
 
@@ -206,10 +216,13 @@ void _quicksort (void *const pbase, size_t total_elems, size_t size, __compar_fn
 #define qsort_min(x, y) ((x) < (y) ? (x) : (y))
 
   {
-    char *const end_ptr = &base_ptr[size * (total_elems - 1)];
+    char *end_ptr = &base_ptr[size * (total_elems - 1)];
+    if ((void *)end_ptr > limit) {
+	    end_ptr = base_ptr + ((char *)limit - base_ptr)/size*size - size;
+    }
     char *tmp_ptr = base_ptr;
     char *thresh = qsort_min(end_ptr, base_ptr + max_thresh);
-    register char *run_ptr;
+    char *run_ptr;
 
     /* Find smallest element in first threshold and place it at the
        array's beginning.  This is the smallest array element,
@@ -258,5 +271,11 @@ void _quicksort (void *const pbase, size_t total_elems, size_t size, __compar_fn
 #undef POP
 #undef STACK_NOT_EMPTY
 #undef qsort_min
+
+static inline
+void _quicksort (void *const pbase, size_t total_elems, size_t size, __compar_fn_t cmp)
+{
+	_quicksort_top(pbase, total_elems, size, cmp, (void *)(~0));
+}
 
 #endif
