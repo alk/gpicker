@@ -18,6 +18,8 @@ struct prepared_pattern {
 	char *translated_pattern;
 	char *start_of_pattern_word;
 	unsigned pat_length;
+	char first_chars[8];
+	char fc_count;
 };
 
 int score_string(const char *string, const struct scorer_query *query, const unsigned string_length, unsigned* match);

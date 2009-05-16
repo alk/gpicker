@@ -71,6 +71,17 @@ void initialize_prepared_pattern(const char *pattern,
 		rv->start_of_pattern_word[i] = previous_delimiter || ('A' <= ch && ch <= 'Z');
 		rv->translated_pattern[i] = normalize_char(ch, &previous_delimiter);
 	}
+
+	char fc_count = 0;
+	for (i = 0; i < rv->pat_length && fc_count < 4; i++) {
+		char ch = rv->translated_pattern[i];
+		if (!delimiter_p(ch)) {
+			rv->first_chars[fc_count*2] = ch;
+			rv->first_chars[fc_count*2+1] = toupper(ch);
+			fc_count++;
+		}
+	}
+	rv->fc_count = fc_count;
 }
 
 struct prepared_pattern *prepare_pattern(const struct scorer_query *query)
@@ -135,6 +146,42 @@ int score_string_prepared(const char *string,
 		return -1;
 
 	dprintf("scoring string '%.*s' for pattern '%s'\n", string_length, string, pattern);
+
+#if 1
+	if (prepared_pattern->fc_count > 0) {
+		const char *p = string;
+		char ch;
+
+#define I(i) \
+		do { \
+			ch = prepared_pattern->first_chars[i*2];	\
+			if (ch) {					\
+				const char *next = memchr(p, ch, string + string_length - p); \
+				const char *next2 = memchr(p, prepared_pattern->first_chars[i*2+1], string + string_length - p); \
+				if (!next && !next2)			\
+					return -1;			\
+				if (!next)				\
+					next = next2;			\
+				else if (!next2)			\
+				next2 = next;				\
+				p = ((next < next2) ? next : next2) + 1; \
+			} \
+		} while (0)
+
+		I(0);
+
+		if (prepared_pattern->fc_count > 1) {
+			I(1);
+			if (prepared_pattern->fc_count > 2) {
+				I(2);
+				if (prepared_pattern->fc_count > 3)
+					I(3);
+			}
+		}
+
+#undef I
+	}
+#endif
 
 	memset(state, -1, sizeof(state));
 
@@ -236,8 +283,6 @@ int score_string(const char *string,
 	const unsigned pat_length = strlen(pattern);
 	char start_of_pattern_word[pat_length];
 	char translated_pattern[pat_length];
-	unsigned i;
-	unsigned previous_delimiter;
 
 	if (pat_length == 0)
 		return 0;
@@ -249,19 +294,14 @@ int score_string(const char *string,
 		return -1;
 
 
-	previous_delimiter = 1;
-	for (i=0; i<pat_length; i++) {
-		char ch = pattern[i];
-		start_of_pattern_word[i] = previous_delimiter || ('A' <= ch && ch <= 'Z');
-		translated_pattern[i] = normalize_char(ch, &previous_delimiter);
-	}
-	previous_delimiter = 0;
-
 	struct prepared_pattern p = {
 		.translated_pattern = translated_pattern,
 		.start_of_pattern_word = start_of_pattern_word,
 		.pat_length = pat_length
 	};
+
+	if (pat_length)
+		initialize_prepared_pattern(pattern, &p);
 
 	return score_string_prepared(string, query, &p, string_length, match);
 }
