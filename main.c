@@ -84,10 +84,10 @@ char *input_names(int fd, char **endp)
 		}
 	} while (1);
 	if (filled) {
-			if (buf[filled-1])
-					filled++;
-			buf = xrealloc(buf, filled);
-			buf[filled-1] = 0;
+		if (buf[filled-1])
+			filled++;
+		buf = xrealloc(buf, filled);
+		buf[filled-1] = 0;
 	}
 	*endp = buf+filled;
 	return buf;
