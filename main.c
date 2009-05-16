@@ -393,7 +393,6 @@ void set_window_title(void)
 {
 	char work_dir[PATH_MAX];
 	const gchar *title;
-	char *dirptr = work_dir;
 
 	getcwd(work_dir, sizeof(work_dir));
 
