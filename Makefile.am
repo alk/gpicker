@@ -14,3 +14,6 @@ scorer_tests_SOURCES = scorer-tests.c scorer.c
 scorer_tests_LDADD = @check_LIBS@
 
 endif # HAVE_CHECK
+
+check-syntax:
+	$(COMPILE) -o /dev/null -S ${CHK_SOURCES}
