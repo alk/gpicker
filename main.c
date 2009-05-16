@@ -15,23 +15,29 @@
  * along with this program.  If not, see
  * `http://www.gnu.org/licenses/'.
  */
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 #include <glade/glade.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <memory.h>
 #include <fcntl.h>
 #include <errno.h>
 #include "config.h"
+#include <assert.h>
+#include <arpa/inet.h> // for ntohl
 
 #include "xmalloc.h"
 #include "scorer.h"
 #include "filtration.h"
 #include "vector.h"
 #include "timing.h"
+#include "inline_qsort.h"
 
 static GladeXML *glade_ui;
 static GtkWindow *top_window;
@@ -113,7 +119,79 @@ void read_filenames(int fd)
 		add_filename(start, dirlength);
 	}
 
-	qsort(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare);
+	_quicksort(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare);
+}
+
+static
+void read_filenames_from_mlocate_db(int fd)
+{
+	static char read_buffer[65536];
+
+	timing_t start;
+	struct stat st;
+	int rv = fstat(fd, &st);
+	char *data;
+
+	start = start_timing();
+
+	if (rv < 0) {
+		perror("read_filenames_from_mlocate_db:fstat");
+		exit(1);
+	}
+	data = mmap(0, (size_t)st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+	if (data == MAP_FAILED) {
+		perror("read_filenames_from_mlocate_db:mmap");
+		exit(1);
+	}
+
+	char *prefix = data + 0x10;
+	int prefix_len = strlen(prefix) + 1;
+	char *end = data + st.st_size;
+	char *strings = prefix + prefix_len + ntohl(*((uint32_t *)(data + 0x8))) + 0x10;
+
+	if (prefix[prefix_len-2] == '/')
+		prefix_len--;
+
+	while (strings < end) {
+		// dir name is in strings
+		int len = strlen(strings);
+		int read_buffer_len = strlen(strings + prefix_len);
+		memcpy(read_buffer, strings + prefix_len, read_buffer_len);
+		if (read_buffer_len)
+			read_buffer[read_buffer_len++] = '/';
+
+		char *p = strings + len + 1;
+
+		while (p[0] == 1 || p[0] == 0) {
+			p++;
+			int p_len = strlen(p);
+
+			if (p[-1] == 0) {
+				memcpy(read_buffer+read_buffer_len, p, p_len);
+				int total_len = read_buffer_len + p_len;
+				char *last_slash = memrchr(read_buffer, '/', total_len);
+				int dirlength = last_slash ? last_slash - read_buffer : 0;
+				char *dup = malloc(total_len+1);
+				memcpy(dup, read_buffer, total_len);
+				dup[total_len] = 0;
+				add_filename(dup, dirlength);
+			}
+
+			p += p_len + 1;
+		}
+
+		assert(p[0] == 2);
+
+		strings = p + 0x11;
+	}
+
+	/*
+         * {
+	 * 	timing_t start = start_timing();
+	 * 	_quicksort(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare);
+	 * 	finish_timing(start, "initial qsort");
+	 * }
+         */
 }
 
 static
@@ -329,6 +407,17 @@ void set_window_title(void)
 static
 void setup_filenames(void)
 {
+	if (project_type && !strcmp(project_type, "mlocate")) {
+		int fd = open(project_dir, O_RDONLY);
+		if (fd < 0) {
+			perror("setup_filenames:open");
+			exit(1);
+		}
+		read_filenames_from_mlocate_db(fd);
+		close(fd);
+		return;
+	}
+
 	int rv = chdir(project_dir);
 	FILE *pipe;
 
@@ -427,7 +516,7 @@ void parse_options(int argc, char **argv)
 		fputs(g_option_context_get_help(context, TRUE, NULL), stderr);
 		exit(1);
 	}
-	if (project_type && strcmp(project_type, "git") && strcmp(project_type, "default")) {
+	if (project_type && strcmp(project_type, "git") && strcmp(project_type, "default") && strcmp(project_type, "mlocate")) {
 		fprintf(stderr, "Unknown project type specified: %s\n", project_type);
 		exit(1);
 	}
@@ -436,6 +525,16 @@ void parse_options(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
+	/*
+         * {
+	 * 	int i;
+	 * 	int fd = open("/var/lib/mlocate/mlocate.db",O_RDONLY);
+	 * 	for (i=0;i<20;i++) {
+	 * 		read_filenames_from_mlocate_db(fd);
+	 * 	}
+	 * 	exit(0);
+	 * }
+         */
 	timing_t tstart = start_timing();
 
 	parse_options(argc, argv);
