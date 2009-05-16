@@ -5,6 +5,7 @@
 /GSYMS
 /GTAGS
 /ID
+/TAGS
 Makefile
 Makefile.in
 aclocal.m4
