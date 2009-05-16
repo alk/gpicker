@@ -172,12 +172,25 @@ struct filter_result *filter_files(char *pattern)
 	int i;
 
 	start = start_timing();
-	filter = prepare_filter(pattern, &filter_func, &destructor);
-	finish_timing(start, "prepare_filter");
-
-	start = start_timing();
 	vector_clear(&filtered);
 	finish_timing(start, "vector_clear");
+
+	if (pattern[0] == 0) {
+		int limit = (nfiles > FILTER_LIMIT) ? FILTER_LIMIT : nfiles;
+		start = start_timing();
+		for (i=0; i < limit; i++) {
+			struct filter_result result = {.index = i, .score = 0};
+			struct filter_result *place;
+			place = vector_append(&filtered);
+			*place = result;
+		}
+		finish_timing(start, "prepare_filter:blank pattern case");
+		return (struct filter_result *)filtered.buffer;
+	}
+
+	start = start_timing();
+	filter = prepare_filter(pattern, &filter_func, &destructor);
+	finish_timing(start, "prepare_filter");
 
 	start = start_timing();
 	for (i=0; i<nfiles; i++) {
