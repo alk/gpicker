@@ -17,6 +17,8 @@ Things to think/implement later:
   This will boost performance on cold dentry cache, or on very large projects (openjdk)
   (usually, Linux's VFS is fast enough).
 -- consider automatic cache updating by looking at directories' mtimes
+-- OR support picking from mlocate database with optional updating
+
 
 - work on filtering performance. On linux kernel it can sometimes be around 0.5 second.
   Looks like GTK issue. Consider adding tail of filelist in background.
