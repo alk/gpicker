@@ -16,6 +16,7 @@
  * `http://www.gnu.org/licenses/'.
  */
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <glib.h>
 #include "config.h"
@@ -162,17 +163,23 @@ int compare_filter_result(struct filter_result *a, struct filter_result *b)
 	return filea->dirlength - fileb->dirlength;
 }
 
-struct filter_result *filter_files(char *pattern)
+struct vector partial_filtered = {.eltsize = sizeof(struct filter_result)};
+
+static volatile
+unsigned abort_filtration_request;
+
+static
+struct filter_result *do_filter_files(const char *pattern)
 {
 	struct filter_result *results;
 	void *filter;
 	filter_func filter_func;
 	filter_destructor destructor = 0;
-	timing_t start;
+	timing_t start, whole;
 	int i;
 
-	start = start_timing();
-	vector_clear(&filtered);
+	whole = start = start_timing();
+	vector_clear(&partial_filtered);
 	finish_timing(start, "vector_clear");
 
 	if (pattern[0] == 0) {
@@ -181,11 +188,11 @@ struct filter_result *filter_files(char *pattern)
 		for (i=0; i < limit; i++) {
 			struct filter_result result = {.index = i, .score = 0};
 			struct filter_result *place;
-			place = vector_append(&filtered);
+			place = vector_append(&partial_filtered);
 			*place = result;
 		}
 		finish_timing(start, "prepare_filter:blank pattern case");
-		return (struct filter_result *)filtered.buffer;
+		return (struct filter_result *)partial_filtered.buffer;
 	}
 
 	start = start_timing();
@@ -194,12 +201,14 @@ struct filter_result *filter_files(char *pattern)
 
 	start = start_timing();
 	for (i=0; i<nfiles; i++) {
+		if (!(i % 16384) && abort_filtration_request)
+			break;
 		struct filter_result result;
 		int passes = filter_func(files + i, filter, &result, 0);
 		struct filter_result *place;
 		if (!passes)
 			continue;
-		place = vector_append(&filtered);
+		place = vector_append(&partial_filtered);
 		result.index = i;
 		*place = result;
 	}
@@ -210,14 +219,116 @@ struct filter_result *filter_files(char *pattern)
 		destructor(filter);
 	finish_timing(start, "destructor");
 
+	if (abort_filtration_request) {
+		timing_printf("this is aborted filtration\n");
+		return 0;
+	}
+
 	start = start_timing();
-	results = (struct filter_result *)filtered.buffer;
-	_quicksort_top(results, filtered.used, sizeof(struct filter_result), (int (*)(const void *, const void *))compare_filter_result, results + FILTER_LIMIT);
+	results = (struct filter_result *)partial_filtered.buffer;
+	_quicksort_top(results, partial_filtered.used, sizeof(struct filter_result), (int (*)(const void *, const void *))compare_filter_result, results + FILTER_LIMIT);
 	finish_timing(start, "qsort");
 
-#if WITH_TIMING
-	fprintf(stderr, "Result-set size is %d\n", filtered.used);
-#endif
+	finish_timing(whole, "whole do_filter_files");
+	timing_printf("Result-set size is %d\n", partial_filtered.used);
 
 	return results;
+}
+
+static char *ft_pattern;
+static char *ft_applied_pattern;
+static GMutex *ft_mutex;
+static GCond *ft_filtation_cond;
+static unsigned ft_idle_pending;
+static void (*ft_callback)(char *);
+
+static
+gpointer filtration_thread(gpointer);
+
+static void init_ft_state()
+{
+	if (ft_mutex)
+		return;
+	ft_mutex = g_mutex_new();
+	ft_filtation_cond = g_cond_new();
+	g_thread_create(filtration_thread, 0, 0, 0);
+}
+
+static
+gboolean filtration_idle(gpointer _pattern)
+{
+	g_mutex_lock(ft_mutex);
+	ft_callback(ft_applied_pattern);
+	if (ft_applied_pattern)
+		free(ft_applied_pattern);
+	ft_applied_pattern = 0;
+	ft_idle_pending = 0;
+	g_mutex_unlock(ft_mutex);
+	return FALSE;
+}
+
+static
+gpointer filtration_thread(gpointer _dummy)
+{
+	char *pattern;
+	g_mutex_lock(ft_mutex);
+
+again:
+	while (!ft_pattern)
+		g_cond_wait(ft_filtation_cond, ft_mutex);
+	pattern = ft_pattern;
+	g_mutex_unlock(ft_mutex);
+
+	timing_printf("filtration_thread: waked up for '%s'\n", pattern);
+
+	struct filter_result *rv = do_filter_files(pattern);
+
+	g_mutex_lock(ft_mutex);
+
+	if (!abort_filtration_request) {
+		ft_pattern = 0;
+	}
+
+	abort_filtration_request = 0;
+
+	if (!rv) {
+		free(pattern);
+		goto again;
+	}
+
+	vector_clear(&filtered);
+	vector_splice_into(&partial_filtered, &filtered);
+	if (ft_applied_pattern)
+		free(ft_applied_pattern);
+	ft_applied_pattern = pattern;
+
+	if (!ft_idle_pending) {
+		g_idle_add(filtration_idle, 0);
+		ft_idle_pending = 1;
+	}
+
+	goto again;
+
+	return 0;
+}
+
+void filter_files(char *pattern, void (*callback)(char *))
+{
+#if 1
+	init_ft_state();
+	g_mutex_lock(ft_mutex);
+	if (ft_pattern)
+		abort_filtration_request = 1;
+	ft_pattern = strdup(pattern);
+	ft_callback = callback;
+	g_cond_broadcast(ft_filtation_cond);
+	g_mutex_unlock(ft_mutex);
+#else
+	do_filter_files(pattern);
+
+	vector_clear(&filtered);
+	vector_splice_into(&partial_filtered, &filtered);
+
+	callback(pattern);
+#endif
 }

@@ -18,6 +18,7 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
+#include <glib.h>
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 #include <glade/glade.h>
@@ -192,18 +193,28 @@ void read_filenames_from_mlocate_db(int fd)
 	}
 }
 
+static void filter_tree_view_tail();
+
 static
 void filter_tree_view(char *pattern)
 {
-	struct filter_result *results;
+	filter_files(pattern, filter_tree_view_tail);
+}
 
+static
+char *applied_pattern;
+
+static
+void filter_tree_view_tail(char *pattern)
+{
 	GtkTreeIter iter;
 	timing_t start;
 	int i, n;
+	struct filter_result *results = (struct filter_result *)filtered.buffer;
 
-	start = start_timing();
-	results = filter_files(pattern);
-	finish_timing(start, "filter_files");
+	if (applied_pattern)
+		free(applied_pattern);
+	applied_pattern = strdup(pattern);
 
 	start = start_timing();
 
@@ -254,7 +265,7 @@ void cell_data_func(GtkTreeViewColumn *col,
 	gtk_tree_model_get(model, iter, 0, &index, -1);
 	text = files[index].p;
 	if (text) {
-		const char *pattern = gtk_entry_get_text(GTK_ENTRY(name_entry));
+		const char *pattern = applied_pattern;
 		int patlen = strlen(pattern);
 		unsigned match[patlen];
 		void *filter;
@@ -534,6 +545,7 @@ int main(int argc, char **argv)
          */
 	timing_t tstart = start_timing();
 
+	g_thread_init(0);
 	parse_options(argc, argv);
 	gtk_init(0, 0);
 

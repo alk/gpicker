@@ -15,7 +15,7 @@ void *prepare_filter(const char *filter, filter_func *func, filter_destructor *d
 
 int compare_filter_result(struct filter_result *a, struct filter_result *b);
 
-struct filter_result *filter_files(char *pattern);
+void filter_files(char *pattern, void (*callback)(char *));
 
 #define FILTER_LIMIT 1000
 
