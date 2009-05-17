@@ -37,3 +37,15 @@ void vector_clear(struct vector *v)
 	v->buffer = realloc(v->buffer, 0);
 	v->avail = 0;
 }
+
+struct vector *vector_splice_into(struct vector *src, struct vector *dst)
+{
+	if (dst->buffer)
+		free(dst->buffer);
+	*dst = *src;
+	src->used = 0;
+	src->buffer = 0;
+	src->avail = 0;
+
+	return dst;
+}
