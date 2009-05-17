@@ -17,6 +17,8 @@ void finish_timing(clock_t start, char *info)
 	fprintf(stderr, "%s took %g msecs\n", info, msecs);
 }
 
+#define timing_printf(...) fprintf(stderr, __VA_ARGS__)
+
 #else
 
 typedef int timing_t;
@@ -29,6 +31,13 @@ timing_t start_timing()
 static inline
 void finish_timing(timing_t start, char *info)
 {
+}
+
+
+static inline __attribute__((format (printf, 1, 2))) __attribute__((unused))
+int timing_printf(const char *p, ...)
+{
+	return 0;
 }
 
 #endif
