@@ -119,7 +119,7 @@ void read_filenames(int fd)
 		add_filename(start, dirlength);
 	}
 
-	_quicksort(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare);
+	_quicksort_top(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
 }
 
 static
@@ -185,13 +185,11 @@ void read_filenames_from_mlocate_db(int fd)
 		strings = p + 0x11;
 	}
 
-	/*
-         * {
-	 * 	timing_t start = start_timing();
-	 * 	_quicksort(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare);
-	 * 	finish_timing(start, "initial qsort");
-	 * }
-         */
+	{
+		start = start_timing();
+		_quicksort_top(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
+		finish_timing(start, "initial qsort");
+	}
 }
 
 static
