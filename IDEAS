@@ -31,3 +31,5 @@ DONE - (low-tech speedup alternative) limit number of items in listview with rea
 
 - Consider not matching '-' and '_' delimiters, but only using them as word start markers.
   This will allow using '-' for matching camelcase names.
+
+- I need good support for git submodules
