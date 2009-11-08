@@ -335,25 +335,13 @@ void print_selection(void)
 
 	list = gtk_tree_selection_get_selected_rows(sel, 0);
 	if (!list) {
-		puts("nil");
 		return;
 	}
 
 	gtk_tree_model_get_iter(GTK_TREE_MODEL(list_store), &iter, list->data);
 	gtk_tree_model_get(GTK_TREE_MODEL(list_store), &iter, 0, &idx, -1);
 
-	{
-		char *p = files[idx].p;
-		char ch;
-		putchar('"');
-		while ((ch = *p++)) {
-			if (ch == '"' || ch == '\\') {
-				putchar('\\');
-			}
-			putchar(ch);
-		}
-		puts("\"");
-	}
+	puts(files[idx].p);
 
 	g_list_foreach(list, (GFunc) gtk_tree_path_free, NULL);
 	g_list_free(list);
@@ -372,7 +360,6 @@ gboolean on_top_window_keypress(GtkWidget *_dummy,
 				gpointer _dummy2)
 {
 	if (event->keyval == GDK_Escape) {
-		puts("nil");
 		exit_program();
 		return TRUE;
 	}

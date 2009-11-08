@@ -66,7 +66,11 @@
                       (if (eql status 0)
                           (save-excursion
                             (set-buffer chooser-buffer)
-                            (read (buffer-string)))
+                            (let* ((result (buffer-string))
+                                   (len (length result)))
+                              (if (= len 0)
+                                  nil
+                                (substring result 0 (- len 1)))))
                         (message "gpicker exited with status %d" status)
                         (save-excursion
                           (set-buffer "*Messages*")
