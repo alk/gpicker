@@ -390,9 +390,7 @@ void set_window_title(void)
 	char work_dir[PATH_MAX];
 	const gchar *title;
 
-	getcwd(work_dir, sizeof(work_dir));
-
-	if (!work_dir[0])
+	if (!getcwd(work_dir, sizeof(work_dir)) || !work_dir[0])
 		return;
 
 	title = g_strdup_printf("%s - pick a file", work_dir);
@@ -402,6 +400,8 @@ void set_window_title(void)
 static
 void setup_filenames(void)
 {
+	FILE *pipe;
+
 	if (project_type && !strcmp(project_type, "mlocate")) {
 		int fd = open(project_dir, O_RDONLY);
 		if (fd < 0) {
@@ -413,20 +413,16 @@ void setup_filenames(void)
 		return;
 	}
 
-	int rv = chdir(project_dir);
-	FILE *pipe;
-
-	if (rv) {
-		perror("cannot chdir to project directory");
-		exit(1);
-	}
-
 	set_window_title();
 
 	if (!project_type || !strcmp(project_type, "default"))
-		pipe = popen("find '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*' -a '!' -wholename '*.svn/*' -type f -print0","r");
+		pipe = popen("find '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*' -a '!' -wholename '*.svn/*' -a '!' -wholename '*.bzr/*' -a '!' -wholename '*CVS/*' -type f -print0","r");
 	else if (!strcmp(project_type, "git"))
 		pipe = popen("git ls-files --exclude-standard -c -o -z", "r");
+	else if (!strcmp(project_type, "hg"))
+		pipe = popen("hg locate -0", "r");
+	else if (!strcmp(project_type, "bzr"))
+		pipe = popen("bzr ls -R --versioned --unknown --null", "r");
 
 	if (!pipe) {
 		perror("failed to spawn find");
@@ -489,9 +485,47 @@ void setup_signals(void)
 
 static
 GOptionEntry entries[] = {
-	{"project-type", 't', 0, G_OPTION_ARG_STRING, &project_type, "respect ignored files for given kind of VCS (default, git)", 0},
+	{"project-type", 't', 0, G_OPTION_ARG_STRING, &project_type, "respect ignored files for given kind of VCS (auto, git, bzr, hg, default)", 0},
 	{0}
 };
+
+static
+int isdir(char* name)
+{
+    struct stat statbuf;
+    if (stat(name, &statbuf) < 0 || !S_ISDIR(statbuf.st_mode)) {
+        return 0;
+    }
+    return 1;
+}
+
+static
+void check_vcs()
+{
+	int rv = chdir(project_dir);
+
+	if (rv) {
+		perror("cannot chdir to project directory");
+		exit(1);
+	}
+
+
+	if (project_type) {
+		if (!strcmp(project_type, "guess")) {
+			// guess VCS
+			if (isdir(".git")) project_type = strdup("git");
+			else if (isdir(".hg")) project_type = strdup("hg");
+			else if (isdir(".bzr")) project_type = strdup("bzr");
+			else project_type = strdup("default");
+		} else {
+			// santize VCS
+			if (project_type && ((!strcmp(project_type, "git") && !isdir(".git")) ||
+						(!strcmp(project_type, "hg") && !isdir(".hg")) ||
+						(!strcmp(project_type, "bzr") && !isdir(".bzr"))))
+				project_type = strdup("default");
+		}
+	}
+}
 
 static
 void parse_options(int argc, char **argv)
@@ -511,11 +545,18 @@ void parse_options(int argc, char **argv)
 		fputs(g_option_context_get_help(context, TRUE, NULL), stderr);
 		exit(1);
 	}
-	if (project_type && strcmp(project_type, "git") && strcmp(project_type, "default") && strcmp(project_type, "mlocate")) {
+	if (project_type && strcmp(project_type, "guess") &&
+			strcmp(project_type, "git") &&
+			strcmp(project_type, "hg") &&
+			strcmp(project_type, "bzr") &&
+			strcmp(project_type, "default") &&
+			strcmp(project_type, "mlocate")) {
 		fprintf(stderr, "Unknown project type specified: %s\n", project_type);
 		exit(1);
 	}
+
 	project_dir = argv[1];
+	check_vcs();
 }
 
 int main(int argc, char **argv)

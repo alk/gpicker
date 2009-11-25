@@ -41,7 +41,7 @@ endif
 
 command Gpicker :call <SID>Gpicker()
 function! s:Gpicker()
-  let filename = substitute(system('gpicker .'), '\n\+', '', 'g')
+  let filename = substitute(system('gpicker -t guess .'), '\n\+', '', 'g')
   if filereadable(filename)
     execute "edit " . filename
   endif
