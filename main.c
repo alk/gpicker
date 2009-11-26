@@ -485,7 +485,7 @@ void setup_signals(void)
 
 static
 GOptionEntry entries[] = {
-	{"project-type", 't', 0, G_OPTION_ARG_STRING, &project_type, "respect ignored files for given kind of VCS (auto, git, bzr, hg, default)", 0},
+	{"project-type", 't', 0, G_OPTION_ARG_STRING, &project_type, "respect ignored files for given kind of VCS (default, git, bzr, hg, guess)", 0},
 	{0}
 };
 
