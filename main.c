@@ -383,6 +383,10 @@ static
 char *project_type;
 static
 char *project_dir;
+static
+gboolean disable_bzr;
+static
+gboolean disable_hg;
 
 static
 void set_window_title(void)
@@ -486,6 +490,8 @@ void setup_signals(void)
 static
 GOptionEntry entries[] = {
 	{"project-type", 't', 0, G_OPTION_ARG_STRING, &project_type, "respect ignored files for given kind of VCS (default, git, bzr, hg, guess)", 0},
+	{"disable-bzr", 0, 0, G_OPTION_ARG_NONE, &disable_bzr, "disable autodetection of bzr project type", 0},
+	{"disable-hg", 0, 0, G_OPTION_ARG_NONE, &disable_hg, "disable autodetection of Mercurial project type", 0},
 	{0}
 };
 
@@ -513,9 +519,9 @@ void check_vcs()
 	if (project_type && !strcmp(project_type, "guess")) {
 		if (isdir(".git"))
 			project_type = "git";
-		else if (isdir(".hg"))
+		else if (!disable_hg && isdir(".hg"))
 			project_type = "hg";
-		else if (isdir(".bzr"))
+		else if (!disable_bzr && isdir(".bzr"))
 			project_type = "bzr";
 		else
 			project_type = "default";

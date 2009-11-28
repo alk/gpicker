@@ -48,21 +48,25 @@
 ;;; Code
 
 (defvar *gpicker-path* "gpicker")
+(defvar *gpicker-extra-args* '("--disable-bzr")) ;; bzr builtin file listing is just too slow
 (defvar *gpicker-project-dir* nil)
-(defvar *gpicker-project-type* nil)
+(defvar *gpicker-project-type* "guess")
 (defvar *gpicker-errors-log* (expand-file-name "~/gpicker-errors.log"))
 
 (defun gpicker-pick (dir)
   (unless *gpicker-project-dir*
     (error "visit gpicker project via 'gpicker-visit-project first!"))
-  (let ((chooser-buffer (generate-new-buffer "*gpicker*")))
-    (unwind-protect (let ((status (call-process *gpicker-path*
-                                                nil ;; input
-                                                (list chooser-buffer *gpicker-errors-log*)
-                                                nil ;; dont redisplay
-                                                "-t"
-                                                (or *gpicker-project-type* "default")
-                                                dir)))
+  (let ((chooser-buffer (generate-new-buffer "*gpicker*"))
+        (gpicker-args (append *gpicker-extra-args*
+                              (list "-t"
+                                    (or *gpicker-project-type* "default")
+                                    dir))))
+    (unwind-protect (let ((status (apply #'call-process
+                                         *gpicker-path*
+                                         nil ;; input
+                                         (list chooser-buffer *gpicker-errors-log*)
+                                         nil ;; dont redisplay
+                                         gpicker-args)))
                       (if (eql status 0)
                           (save-excursion
                             (set-buffer chooser-buffer)
