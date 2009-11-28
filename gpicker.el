@@ -83,21 +83,19 @@
       (kill-buffer chooser-buffer)
       (discard-input))))
 
-(defun gpicker-guess-project-type (dir)
-  (cond ((file-accessible-directory-p (expand-file-name ".git" dir))
-         "git")))
-
 (defun gpicker-set-project-type (type)
   "Sets type of current gpicker project"
-  (interactive (list (completing-read "Choose gpicker project type: " '("git" "default")
-                                      nil t nil nil "default")))
+  (interactive (list (completing-read "Choose gpicker project type: "
+                                      '("guess" "git" "hg"
+                                        "bzr" "default" "mlocate")
+                                      nil t nil nil "guess")))
   (setq *gpicker-project-type* type))
 
 (defun gpicker-visit-project (dir)
   "Selects current project directory for gpicker"
   (interactive "DSelect directory:")
   (cd dir)
-  (setq *gpicker-project-type* (gpicker-guess-project-type dir))
+  (setq *gpicker-project-type* "guess")
   (setq *gpicker-project-dir* (expand-file-name dir)))
 
 (defun gpicker-do-find (find-function)
