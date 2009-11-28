@@ -510,14 +510,15 @@ void check_vcs()
 	}
 
 
-	if (project_type) {
-		if (!strcmp(project_type, "guess")) {
-			// guess VCS
-			if (isdir(".git")) project_type = strdup("git");
-			else if (isdir(".hg")) project_type = strdup("hg");
-			else if (isdir(".bzr")) project_type = strdup("bzr");
-			else project_type = strdup("default");
-		}
+	if (project_type && !strcmp(project_type, "guess")) {
+		if (isdir(".git"))
+			project_type = "git";
+		else if (isdir(".hg"))
+			project_type = "hg";
+		else if (isdir(".bzr"))
+			project_type = "bzr";
+		else
+			project_type = "default";
 	}
 }
 
