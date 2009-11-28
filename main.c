@@ -517,12 +517,6 @@ void check_vcs()
 			else if (isdir(".hg")) project_type = strdup("hg");
 			else if (isdir(".bzr")) project_type = strdup("bzr");
 			else project_type = strdup("default");
-		} else {
-			// santize VCS
-			if (project_type && ((!strcmp(project_type, "git") && !isdir(".git")) ||
-						(!strcmp(project_type, "hg") && !isdir(".hg")) ||
-						(!strcmp(project_type, "bzr") && !isdir(".bzr"))))
-				project_type = strdup("default");
 		}
 	}
 }
