@@ -316,7 +316,7 @@ again:
 
 void filter_files(char *pattern, void (*callback)(char *))
 {
-#if 1
+#ifndef NO_PARALLEL_FILTRATION
 	init_ft_state();
 	g_mutex_lock(ft_mutex);
 	if (ft_pattern)
