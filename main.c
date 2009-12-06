@@ -58,6 +58,7 @@ static char *dir_separator;
 static gboolean read_stdin;
 static char *eat_prefix = "./";
 static gboolean multiselect;
+static char *init_filter;
 
 static
 void add_filename(char *p, int dirlength)
@@ -466,7 +467,17 @@ void setup_data(void)
 	gtk_tree_view_set_model(tree_view, GTK_TREE_MODEL(list_store));
 	setup_filenames();
 	setup_column();
-	on_entry_changed(GTK_EDITABLE(name_entry), 0);
+
+	GtkEditable *editable = GTK_EDITABLE(name_entry);
+
+	if (init_filter) {
+		int len = strlen(init_filter);
+		gtk_entry_set_text(name_entry, init_filter);
+		gtk_editable_set_position(editable, len);
+		gtk_editable_select_region(editable, 0, len);
+	}
+
+	on_entry_changed(editable, 0);
 }
 
 static
@@ -519,6 +530,7 @@ GOptionEntry entries[] = {
 	{"dir-separator", 0, 0, G_OPTION_ARG_STRING, &dir_separator, "separator of directory names from stdin (/ is default)", 0},
 	{"eat-prefix", 0, 0, G_OPTION_ARG_STRING, &eat_prefix, "eat this prefix from names (./ is default)", 0},
 	{"multiselect", 0, 0, G_OPTION_ARG_NONE, &multiselect, "enable multiselect", 0},
+	{"init-filter", 0, 0, G_OPTION_ARG_STRING, &init_filter, "initial filter value", 0},
 	{0}
 };
 
