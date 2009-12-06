@@ -48,7 +48,8 @@
 ;;; Code
 
 (defvar *gpicker-path* "gpicker")
-(defvar *gpicker-extra-args* '("--disable-bzr")) ;; bzr builtin file listing is just too slow
+(defvar *gpicker-extra-args* '("--disable-bzr" ;; bzr builtin file listing is just too slow
+                               "--multiselect"))
 (defvar *gpicker-project-dir* nil)
 (defvar *gpicker-project-type* "guess")
 (defvar *gpicker-errors-log* (expand-file-name "~/gpicker-errors.log"))
@@ -74,7 +75,7 @@
                                    (len (length result)))
                               (if (= len 0)
                                   nil
-                                (substring result 0 (- len 1)))))
+                                (split-string result "\0" t))))
                         (message "gpicker exited with status %d" status)
                         (save-excursion
                           (set-buffer "*Messages*")
@@ -102,12 +103,20 @@
   (setq *gpicker-project-type* "guess")
   (setq *gpicker-project-dir* (expand-file-name dir)))
 
+(defun gpicker-call-find-function (find-function file)
+  (setq file (expand-file-name file *gpicker-project-dir*))
+  (let ((revert-without-query (list (regexp-quote (abbreviate-file-name file)))))
+    (funcall find-function file)))
+
 (defun gpicker-do-find (find-function)
-  (let ((file (gpicker-pick *gpicker-project-dir*)))
-    (when file
-      (setq file (expand-file-name file *gpicker-project-dir*))
-      (let ((revert-without-query (list (regexp-quote (abbreviate-file-name file)))))
-        (funcall find-function file)))))
+  (let ((files (gpicker-pick *gpicker-project-dir*)))
+    (if (and (eql find-function #'find-file)
+             (eql (length files) 2))
+        (progn
+          (gpicker-call-find-function #'find-file (car files))
+          (gpicker-call-find-function #'find-file-other-window (cadr files)))
+      (dolist (file files)
+        (gpicker-call-find-function find-function file)))))
 
 (defun gpicker-find-file ()
   (interactive)

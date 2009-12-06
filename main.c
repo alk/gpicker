@@ -49,22 +49,15 @@ static GtkListStore *list_store;
 struct vector files_vector = {.eltsize = sizeof(struct filename)};
 struct vector filtered = {.eltsize = sizeof(struct filter_result)};
 
-static
-char *project_type;
-static
-char *project_dir;
-static
-gboolean disable_bzr;
-static
-gboolean disable_hg;
-static
-char *name_separator;
-static
-char *dir_separator;
-static
-gboolean read_stdin;
-static
-char *eat_prefix = "./";
+static char *project_type;
+static char *project_dir;
+static gboolean disable_bzr;
+static gboolean disable_hg;
+static char *name_separator;
+static char *dir_separator;
+static gboolean read_stdin;
+static char *eat_prefix = "./";
+static gboolean multiselect;
 
 static
 void add_filename(char *p, int dirlength)
@@ -346,6 +339,27 @@ void exit_program(void)
 }
 
 static
+void selection_printer(gpointer data,
+		       gpointer _dummy)
+{
+	static int did_output = 0;
+	GtkTreePath *path = data;
+	GtkTreeIter iter;
+	gint idx;
+
+	if (did_output)
+		putchar(name_separator[0]);
+	did_output = 1;
+
+	gtk_tree_model_get_iter(GTK_TREE_MODEL(list_store), &iter, path);
+	gtk_tree_model_get(GTK_TREE_MODEL(list_store), &iter, 0, &idx, -1);
+
+	fputs(files[idx].p, stdout);
+
+	gtk_tree_path_free(path);
+}
+
+static
 void print_selection(void)
 {
 	GtkTreeSelection *sel = gtk_tree_view_get_selection(tree_view);
@@ -354,16 +368,10 @@ void print_selection(void)
 	gint idx;
 
 	list = gtk_tree_selection_get_selected_rows(sel, 0);
-	if (!list) {
+	if (!list)
 		return;
-	}
 
-	gtk_tree_model_get_iter(GTK_TREE_MODEL(list_store), &iter, list->data);
-	gtk_tree_model_get(GTK_TREE_MODEL(list_store), &iter, 0, &idx, -1);
-
-	puts(files[idx].p);
-
-	g_list_foreach(list, (GFunc) gtk_tree_path_free, NULL);
+	g_list_foreach(list, selection_printer, NULL);
 	g_list_free(list);
 }
 
@@ -510,6 +518,7 @@ GOptionEntry entries[] = {
 	{"name-separator", 0, 0, G_OPTION_ARG_STRING, &name_separator, "separator of filenames from stdin (\\0 is default)", 0},
 	{"dir-separator", 0, 0, G_OPTION_ARG_STRING, &dir_separator, "separator of directory names from stdin (/ is default)", 0},
 	{"eat-prefix", 0, 0, G_OPTION_ARG_STRING, &eat_prefix, "eat this prefix from names (./ is default)", 0},
+	{"multiselect", 0, 0, G_OPTION_ARG_NONE, &multiselect, "enable multiselect", 0},
 	{0}
 };
 
@@ -654,6 +663,11 @@ int main(int argc, char **argv)
 	tstart = start_timing();
 
 	setup_data();
+
+	if (multiselect) {
+		gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree_view),
+					    GTK_SELECTION_MULTIPLE);
+	}
 
 	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, 0);
 
