@@ -8,6 +8,8 @@ struct filename {
 	int dirlength;
 };
 
+char filter_dir_separator;
+
 typedef void (*filter_destructor)(void *);
 typedef int (*filter_func)(struct filename *, const void *, struct filter_result *, unsigned *);
 

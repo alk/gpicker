@@ -50,6 +50,23 @@ struct vector files_vector = {.eltsize = sizeof(struct filename)};
 struct vector filtered = {.eltsize = sizeof(struct filter_result)};
 
 static
+char *project_type;
+static
+char *project_dir;
+static
+gboolean disable_bzr;
+static
+gboolean disable_hg;
+static
+char *name_separator;
+static
+char *dir_separator;
+static
+gboolean read_stdin;
+static
+char *eat_prefix = "./";
+
+static
 void add_filename(char *p, int dirlength)
 {
 	struct filename *last = vector_append(&files_vector);
@@ -85,10 +102,10 @@ char *input_names(int fd, char **endp)
 		}
 	} while (1);
 	if (filled) {
-		if (buf[filled-1])
+		if (buf[filled-1] != name_separator[0])
 			filled++;
 		buf = xrealloc(buf, filled);
-		buf[filled-1] = 0;
+		buf[filled-1] = name_separator[0];
 	}
 	*endp = buf+filled;
 	return buf;
@@ -107,16 +124,19 @@ void read_filenames(int fd)
 	char *buf = input_names(fd, &endp);
 	char *p = buf;
 
+	int eat_prefix_len = strlen(eat_prefix);
+
 	while (p < endp) {
 		int dirlength = 0;
 		char *start;
 		char ch;
-		if (p[0] == '.' && p[1] == '/')
-			p += 2;
+		if (strncmp(eat_prefix, p, eat_prefix_len) == 0)
+			p += eat_prefix_len;
 		start = p;
-		while ((ch = *p++))
-			if (ch == '/')
+		while ((ch = *p++) != name_separator[0])
+			if (ch == filter_dir_separator)
 				dirlength = p - start;
+		p[-1] = 0;
 		add_filename(start, dirlength);
 	}
 
@@ -380,15 +400,6 @@ void on_entry_changed(GtkEditable *editable,
 }
 
 static
-char *project_type;
-static
-char *project_dir;
-static
-gboolean disable_bzr;
-static
-gboolean disable_hg;
-
-static
 void set_window_title(void)
 {
 	char work_dir[PATH_MAX];
@@ -406,6 +417,8 @@ void setup_filenames(void)
 {
 	FILE *pipe;
 
+	set_window_title();
+
 	if (project_type && !strcmp(project_type, "mlocate")) {
 		int fd = open(project_dir, O_RDONLY);
 		if (fd < 0) {
@@ -417,10 +430,12 @@ void setup_filenames(void)
 		return;
 	}
 
-	set_window_title();
-
-	if (!project_type || !strcmp(project_type, "default"))
-		pipe = popen("find '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*' -a '!' -wholename '*.svn/*' -a '!' -wholename '*.bzr/*' -a '!' -wholename '*CVS/*' -type f -print0","r");
+	if (read_stdin)
+		pipe = stdin;
+	else if (!project_type || !strcmp(project_type, "default"))
+		pipe = popen("find '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*'"
+			     " -a '!' -wholename '*.svn/*' -a '!' -wholename '*.bzr/*'"
+			     " -a '!' -wholename '*CVS/*' -type f -print0","r");
 	else if (!strcmp(project_type, "git"))
 		pipe = popen("git ls-files --exclude-standard -c -o -z", "r");
 	else if (!strcmp(project_type, "hg"))
@@ -492,6 +507,9 @@ GOptionEntry entries[] = {
 	{"project-type", 't', 0, G_OPTION_ARG_STRING, &project_type, "respect ignored files for given kind of VCS (default, git, bzr, hg, guess)", 0},
 	{"disable-bzr", 0, 0, G_OPTION_ARG_NONE, &disable_bzr, "disable autodetection of Bazaar project type", 0},
 	{"disable-hg", 0, 0, G_OPTION_ARG_NONE, &disable_hg, "disable autodetection of Mercurial project type", 0},
+	{"name-separator", 0, 0, G_OPTION_ARG_STRING, &name_separator, "separator of filenames from stdin (\\0 is default)", 0},
+	{"dir-separator", 0, 0, G_OPTION_ARG_STRING, &dir_separator, "separator of directory names from stdin (/ is default)", 0},
+	{"eat-prefix", 0, 0, G_OPTION_ARG_STRING, &eat_prefix, "eat this prefix from names (./ is default)", 0},
 	{0}
 };
 
@@ -506,7 +524,7 @@ int isdir(char* name)
 }
 
 static
-void check_vcs()
+void enter_project_dir()
 {
 	int rv = chdir(project_dir);
 
@@ -514,7 +532,6 @@ void check_vcs()
 		perror("cannot chdir to project directory");
 		exit(1);
 	}
-
 
 	if (project_type && !strcmp(project_type, "guess")) {
 		if (isdir(".git"))
@@ -526,6 +543,33 @@ void check_vcs()
 		else
 			project_type = "default";
 	}
+}
+
+static
+void process_separator(char **separator_place, char *name, char *def)
+{
+	char *separator = *separator_place;
+	if (separator) {
+		if (!read_stdin)
+			fprintf(stderr, "Warning: --%s with usual project is useless\n", name);
+
+		if (!strcmp(separator, "\\n"))
+			separator = "\n";
+		if (!strcmp(separator, "\\r"))
+			separator = "\r";
+		else if (!strcmp(separator, "\\0"))
+			separator = "";
+		else if (!strcmp(separator, "\\t"))
+			separator = "\t";
+
+		if (strlen(separator) > 1) {
+			fprintf(stderr, "%s of more than one character is not supported\n", name);
+			exit(1);
+		}
+	} else
+		separator = def;
+
+	*separator_place = separator;
 }
 
 static
@@ -557,7 +601,17 @@ void parse_options(int argc, char **argv)
 	}
 
 	project_dir = argv[1];
-	check_vcs();
+	read_stdin = !strcmp(project_dir, "-");
+
+	process_separator(&name_separator, "name-separator", "");
+	process_separator(&dir_separator, "dir-separator", "/");
+	filter_dir_separator = dir_separator[0];
+
+	if (read_stdin) {
+		if (project_type)
+			fprintf(stderr, "Warning: project type with stdin input has no effect\n");
+	} else
+		enter_project_dir();
 }
 
 int main(int argc, char **argv)

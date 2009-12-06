@@ -30,6 +30,8 @@ struct simple_filter_state {
 	struct prepared_pattern *prep;
 };
 
+char filter_dir_separator = '/';
+
 static
 int filter_filename(struct filename *name,
 		    const void *_state,
@@ -121,7 +123,7 @@ void destroy_filter_with_dir(void *data)
 
 void *prepare_filter(const char *filter, filter_func *func, filter_destructor *destructor)
 {
-	char *last_slash = strrchr(filter, '/');
+	char *last_slash = strrchr(filter, filter_dir_separator);
 	if (!last_slash) {
 		*destructor = (filter_destructor)free_simple_filter_state;
 		*func = filter_filename;
