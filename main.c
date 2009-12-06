@@ -414,6 +414,11 @@ void set_window_title(void)
 	char work_dir[PATH_MAX];
 	const gchar *title;
 
+	if (read_stdin) {
+		gtk_window_set_title(top_window, "pick something");
+		return;
+	}
+
 	if (!getcwd(work_dir, sizeof(work_dir)) || !work_dir[0])
 		return;
 
