@@ -616,16 +616,6 @@ void parse_options(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-	/*
-         * {
-	 * 	int i;
-	 * 	int fd = open("/var/lib/mlocate/mlocate.db",O_RDONLY);
-	 * 	for (i=0;i<20;i++) {
-	 * 		read_filenames_from_mlocate_db(fd);
-	 * 	}
-	 * 	exit(0);
-	 * }
-         */
 	timing_t tstart = start_timing();
 
 	g_thread_init(0);
