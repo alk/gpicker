@@ -8,7 +8,7 @@ Things to think/implement later:
 
 DONE - allow picking several files. Useful for opening .c and .h simultaneously
 
-- 'find at point'. pre-fill name entry with text under emacs' point. Do it intelligently on emacs side.
+DONE - 'find at point'. pre-fill name entry with text under emacs' point. Do it intelligently on emacs side.
 
 - support more vcs types, so that ignored files are ignored (bzr & mercurial done by avsej)
 -- support svn somehow

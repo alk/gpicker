@@ -47,6 +47,8 @@
 
 ;;; Code
 
+(require 'ffap)
+
 (defvar *gpicker-path* "gpicker")
 (defvar *gpicker-extra-args* '("--disable-bzr" ;; bzr builtin file listing is just too slow
                                "--multiselect"))
@@ -54,38 +56,40 @@
 (defvar *gpicker-project-type* "guess")
 (defvar *gpicker-errors-log* (expand-file-name "~/gpicker-errors.log"))
 
-(defun gpicker-pick (dir)
-  (unless *gpicker-project-dir*
-    (error "visit gpicker project via 'gpicker-visit-project first!"))
-  (let ((chooser-buffer (generate-new-buffer "*gpicker*"))
-        (gpicker-args (append *gpicker-extra-args*
-                              (list "-t"
-                                    (or *gpicker-project-type* "default")
-                                    dir))))
+(defun gpicker-grab-stdout (&rest call-process-args)
+  (with-temp-buffer
     (unwind-protect (let ((status (apply #'call-process
-                                         *gpicker-path*
-                                         nil ;; input
-                                         (list chooser-buffer *gpicker-errors-log*)
-                                         nil ;; dont redisplay
-                                         gpicker-args)))
+                                         (car call-process-args)
+                                         nil
+                                         (list (current-buffer) *gpicker-errors-log*)
+                                         nil
+                                         (cdr call-process-args))))
                       (if (eql status 0)
-                          (save-excursion
-                            (set-buffer chooser-buffer)
-                            (let* ((result (buffer-string))
-                                   (len (length result)))
-                              (if (= len 0)
-                                  nil
-                                (split-string result "\0" t))))
-                        (message "gpicker exited with status %d" status)
+                          (buffer-string)
+                        (message "%s exited with status %d" (car call-process-args) status)
                         (save-excursion
                           (set-buffer "*Messages*")
                           (goto-char (point-max))
                           (insert-file-contents *gpicker-errors-log*))
                         nil))
-      (delete-file *gpicker-errors-log*)
-      (with-current-buffer chooser-buffer
-	(set-buffer-modified-p nil))
-      (kill-buffer chooser-buffer)
+      (delete-file *gpicker-errors-log*))))
+
+(defun gpicker-pick (dir)
+  (unless *gpicker-project-dir*
+    (error "visit gpicker project via 'gpicker-visit-project first!"))
+  (let ((gpicker-args (append *gpicker-extra-args*
+                               (list "-t"
+                                     (or *gpicker-project-type* "default")
+                                     dir)))
+        (at-point (ffap-string-at-point)))
+    (when (and at-point
+               (> (string-bytes at-point) 0))
+      (setq gpicker-args (list* "--init-filter" at-point gpicker-args)))
+    (unwind-protect (let ((rv (apply #'gpicker-grab-stdout
+                                     *gpicker-path*
+                                     gpicker-args)))
+                      (and rv
+                           (split-string rv "\0" t)))
       (discard-input))))
 
 (defun gpicker-set-project-type (type)
