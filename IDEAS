@@ -37,3 +37,5 @@ DONE - (low-tech speedup alternative) limit number of items in listview with rea
   This will allow using '-' for matching camelcase names.
 
 - I need good support for git submodules
+
+- support utf8 (probably with special extra arg if usage of wchar is much slower) 
