@@ -6,6 +6,7 @@ gpicker_LDADD = @gtk2_LIBS@ @libglade_LIBS@ @gthread_LIBS@
 AM_CFLAGS = -DPKGDATADIR=\"$(pkgdatadir)\" @gtk2_CFLAGS@ @libglade_CFLAGS@ @gthread_CFLAGS@
 
 dist_pkgdata_DATA=gpicker.glade gpicker.el gpicker.vim
+dist_bin_SCRIPTS=fasteri
 
 if HAVE_CHECK
 

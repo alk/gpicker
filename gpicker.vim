@@ -42,32 +42,53 @@ if exists("g:loaded_gpicker")
   finish
 endif
 
+" ruby-to-vim function calls
+function! s:GetRiClassNames()
+  ruby get_ri_class_names
+endfunction
+
 command GPickFile :call <SID>GPickFile()
 function! s:GPickFile()
   " select file via gpicker
-  let filename = system('gpicker -t guess .')
-  if filereadable(filename)
+  let l:filename = system('gpicker -t guess .')
+  if filereadable(l:filename)
     " open selected file
-    execute "edit " . filename
+    execute "edit " . l:filename
   endif
 endfunction
 
 command GPickBuffer :call <SID>GPickBuffer()
 function! s:GPickBuffer()
   " grab list of buffers
-  redir => ls_output
+  redir => l:ls_output
   silent execute 'ls'
   redir END
 
   " remove empty line from beginning and trailing line info
-  let items = strpart(substitute(ls_output, '\(\d\+\)\s\+\([u%#ah=+x-]\+\)\s\+"\(.\{-}\)"\s\{-}line\s\+\d\+', '\3   \2 \1', 'g'), 1)
+  let l:items = strpart(substitute(l:ls_output, '\(\d\+\)\s\+\([u%#ah=+x-]\+\)\s\+"\(.\{-}\)"\s\{-}line\s\+\d\+', '\3   \2 \1', 'g'), 1)
   " get selection via gpicker
-  let selected  = system('gpicker --name-separator \\n -', items)
+  let l:selected  = system('gpicker --name-separator \\n -', items)
   " open buffer
-  execute "buffer " . substitute(selected, '\d\+\s\+[u%#ah=+x-]\+$', '', '')
+  execute "buffer " . substitute(l:selected, '\d\+\s\+[u%#ah=+x-]\+$', '', '')
+endfunction
+
+command GPickRiDoc :call <SID>GPickRiDoc()
+function! s:GPickRiDoc()
+  " get selection via gpicker
+  let l:selected  = system('fasteri | gpicker --name-separator \\n -')
+
+  if empty(l:selected) == 0
+    " open buffer
+    execute "new [ri]"
+    setlocal buftype=nofile readonly modifiable
+    setlocal bufhidden=wipe
+    let l:contents = system(printf("fasteri '%s'", l:selected))
+    silent put=l:contents
+    keepjumps 0d
+    setlocal nomodifiable
+  endif
 endfunction
 
 nmap <silent> <leader>lg :GPickFile<cr>
 nmap <silent> <leader>m :GPickBuffer<cr>
-
-" vim:sw=2:sts=2:et:
+nmap <silent> <leader>k :GPickRiDoc<cr>
