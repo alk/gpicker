@@ -60,11 +60,11 @@ function! s:GPickBuffer()
   redir END
 
   " remove empty line from beginning and trailing line info
-  let items = strpart(substitute(ls_output, '"\(.\{-}\)"\s\{-}line\s\+\d\+', '\1', 'g'), 1)
+  let items = strpart(substitute(ls_output, '\(\d\+\)\s\+\([u%#ah=+x-]\+\)\s\+"\(.\{-}\)"\s\{-}line\s\+\d\+', '\3   \2 \1', 'g'), 1)
   " get selection via gpicker
   let selected  = system('gpicker --name-separator \\n -', items)
   " open buffer
-  execute "buffer " . substitute(selected, '\d\+\s\+[u%#ah=+x-]\+\s\+', '', '')
+  execute "buffer " . substitute(selected, '\d\+\s\+[u%#ah=+x-]\+$', '', '')
 endfunction
 
 nmap <silent> <leader>lg :GPickFile<cr>
