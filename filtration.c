@@ -288,22 +288,31 @@ again:
 	g_mutex_lock(ft_mutex);
 
 	if (!abort_filtration_request) {
-		ft_pattern = 0;
+		// no abort request was made, so ft_pattern == pattern
+		ft_pattern = 0; // consume pattern and mark that we're free
+	} else {
+		// abort request was made. Consume this request.
+		abort_filtration_request = 0;
+
+		// if we managed to filter anything
+		// (i.e. abort came too late) continue
+		// otherwise free pattern we partially filtered for and
+		// start new filter cycle
+		if (!rv) {
+			free(pattern);
+			goto again;
+		}
 	}
 
-	abort_filtration_request = 0;
-
-	if (!rv) {
-		free(pattern);
-		goto again;
-	}
-
+	// put new data for g_idle callback that displays results
 	vector_clear(&filtered);
 	vector_splice_into(&partial_filtered, &filtered);
+	// if it had old unconsumed pattern, free it
 	if (ft_applied_pattern)
 		free(ft_applied_pattern);
 	ft_applied_pattern = pattern;
 
+	// schedule g_idle execution if not already scheduled
 	if (!ft_idle_pending) {
 		g_idle_add(filtration_idle, 0);
 		ft_idle_pending = 1;
