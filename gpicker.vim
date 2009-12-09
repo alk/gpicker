@@ -74,8 +74,9 @@ endfunction
 
 command GPickRiDoc :call <SID>GPickRiDoc()
 function! s:GPickRiDoc()
+  let l:cursor = expand("<cword>")
   " get selection via gpicker
-  let l:selected  = system('fasteri | gpicker --name-separator \\n -')
+  let l:selected  = system('fasteri | gpicker --init-filter="'. l:cursor .'" --name-separator \\n -')
 
   if empty(l:selected) == 0
     " open buffer
