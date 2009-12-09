@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Aliaksey Kandratsenka
+ * Copyright (C) 2008,2009 Aliaksey Kandratsenka
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -40,4 +40,12 @@ void *xrealloc(void *ptr, size_t size)
 	if (!ptr)
 		memory_exhausted();
 	return ptr;
+}
+
+char *xstrdup(const char *p)
+{
+	int len = strlen(p) + 1;
+	char *rv = xmalloc(len);
+	memcpy(rv, p, len);
+	return rv;
 }

@@ -228,7 +228,7 @@ void filter_tree_view_tail(char *pattern)
 
 	if (applied_pattern)
 		free(applied_pattern);
-	applied_pattern = strdup(pattern);
+	applied_pattern = xstrdup(pattern);
 
 	start = start_timing();
 
