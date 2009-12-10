@@ -16,6 +16,7 @@
  * `http://www.gnu.org/licenses/'.
  */
 #include <string.h>
+#include <stdlib.h>
 #include <glib.h>
 #include "xmalloc.h"
 
