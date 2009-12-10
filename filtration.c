@@ -24,6 +24,7 @@
 #include "filtration.h"
 #include "vector.h"
 #include "timing.h"
+#include "refcounted_str.h"
 
 struct simple_filter_state {
 	struct scorer_query query;
@@ -237,8 +238,8 @@ struct filter_result *do_filter_files(const char *pattern)
 	return results;
 }
 
-static char *ft_pattern;
-static char *ft_applied_pattern;
+static struct refcounted_str *ft_pattern;
+static struct refcounted_str *ft_applied_pattern;
 static GMutex *ft_mutex;
 static GCond *ft_filtation_cond;
 static unsigned ft_idle_pending;
@@ -260,10 +261,8 @@ static
 gboolean filtration_idle(gpointer _pattern)
 {
 	g_mutex_lock(ft_mutex);
-	ft_callback(ft_applied_pattern);
-	if (ft_applied_pattern)
-		free(ft_applied_pattern);
-	ft_applied_pattern = 0;
+	ft_callback(ft_applied_pattern->str);
+	refcounted_str_put(&ft_applied_pattern);
 	ft_idle_pending = 0;
 	g_mutex_unlock(ft_mutex);
 	return FALSE;
@@ -272,24 +271,24 @@ gboolean filtration_idle(gpointer _pattern)
 static
 gpointer filtration_thread(gpointer _dummy)
 {
-	char *pattern;
+	struct refcounted_str *pattern;
 	g_mutex_lock(ft_mutex);
 
 again:
 	while (!ft_pattern)
 		g_cond_wait(ft_filtation_cond, ft_mutex);
-	pattern = ft_pattern;
+	refcounted_str_get(&pattern, ft_pattern);
 	g_mutex_unlock(ft_mutex);
 
-	timing_printf("filtration_thread: waked up for '%s'\n", pattern);
+	timing_printf("filtration_thread: waked up for '%s'\n", pattern->str);
 
-	struct filter_result *rv = do_filter_files(pattern);
+	struct filter_result *rv = do_filter_files(pattern->str);
 
 	g_mutex_lock(ft_mutex);
 
 	if (!abort_filtration_request) {
 		// no abort request was made, so ft_pattern == pattern
-		ft_pattern = 0; // consume pattern and mark that we're free
+		refcounted_str_put(&ft_pattern); // consume pattern and mark that we're free
 	} else {
 		// abort request was made. Consume this request.
 		abort_filtration_request = 0;
@@ -298,25 +297,25 @@ again:
 		// (i.e. abort came too late) continue
 		// otherwise free pattern we partially filtered for and
 		// start new filter cycle
-		if (!rv) {
-			free(pattern);
-			goto again;
-		}
+		if (!rv)
+			goto put_pattern;
 	}
 
 	// put new data for g_idle callback that displays results
 	vector_clear(&filtered);
 	vector_splice_into(&partial_filtered, &filtered);
 	// if it had old unconsumed pattern, free it
-	if (ft_applied_pattern)
-		free(ft_applied_pattern);
-	ft_applied_pattern = pattern;
+	refcounted_str_put(&ft_applied_pattern);
+	refcounted_str_get(&ft_applied_pattern, pattern);
 
 	// schedule g_idle execution if not already scheduled
 	if (!ft_idle_pending) {
 		g_idle_add(filtration_idle, 0);
 		ft_idle_pending = 1;
 	}
+
+put_pattern:
+	refcounted_str_put(&pattern);
 
 	goto again;
 
@@ -328,9 +327,11 @@ void filter_files(char *pattern, void (*callback)(char *))
 #ifndef NO_PARALLEL_FILTRATION
 	init_ft_state();
 	g_mutex_lock(ft_mutex);
-	if (ft_pattern)
+	if (ft_pattern) {
 		abort_filtration_request = 1;
-	ft_pattern = strdup(pattern);
+		refcounted_str_put(&ft_pattern);
+	}
+	ft_pattern = refcounted_str_dup(pattern);
 	ft_callback = callback;
 	g_cond_broadcast(ft_filtation_cond);
 	g_mutex_unlock(ft_mutex);
