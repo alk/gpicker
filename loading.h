@@ -7,15 +7,9 @@
 extern
 struct vector files_vector;
 
-extern char *project_type;
-extern char *project_dir;
-extern gboolean disable_bzr;
-extern gboolean disable_hg;
 extern char *name_separator;
 extern char *dir_separator;
-extern gboolean read_stdin;
 extern char *eat_prefix;
-extern gboolean multiselect;
 
 extern int gpicker_bytes_readen;
 extern gboolean gpicker_loading_completed;

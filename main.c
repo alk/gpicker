@@ -47,6 +47,12 @@ static GtkListStore *list_store;
 struct vector filtered = {.eltsize = sizeof(struct filter_result)};
 
 static char *init_filter;
+static gboolean multiselect;
+static char *project_type;
+static char *project_dir;
+static gboolean read_stdin;
+static gboolean disable_bzr;
+static gboolean disable_hg;
 
 static
 gboolean program_exited;

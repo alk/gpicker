@@ -38,15 +38,9 @@
 
 struct vector files_vector = {.eltsize = sizeof(struct filename)};
 
-char *project_type;
-char *project_dir;
-gboolean disable_bzr;
-gboolean disable_hg;
 char *name_separator;
 char *dir_separator;
-gboolean read_stdin;
 char *eat_prefix = "./";
-gboolean multiselect;
 
 int gpicker_bytes_readen;
 
