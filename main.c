@@ -361,7 +361,8 @@ void setup_filenames(void)
 	gtk_widget_set_sensitive(GTK_WIDGET(tree_view), TRUE);
 	set_window_title();
 
-	kill(pid, SIGINT);
+	if (pid)
+		kill(pid, SIGINT);
 	close(pipe);
 }
 
