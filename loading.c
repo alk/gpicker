@@ -28,6 +28,8 @@
 #include <assert.h>
 #include <arpa/inet.h> // for ntohl
 
+#include <glib.h>
+
 #include "timing.h"
 #include "filtration.h"
 #include "xmalloc.h"
@@ -45,6 +47,16 @@ char *dir_separator;
 gboolean read_stdin;
 char *eat_prefix = "./";
 gboolean multiselect;
+
+int gpicker_bytes_readen;
+
+gboolean gpicker_loading_completed;
+static
+GMainLoop *async_loading_loop;
+static int current_fd = -1;
+
+static volatile
+gboolean reading_aborted;
 
 static
 void add_filename(char *p, int dirlength)
@@ -67,6 +79,11 @@ char *input_names(int fd, char **endp)
 
 	do {
 		int readen = read(fd, buf+filled, bufsize-filled);
+		if (reading_aborted) {
+			*endp = buf;
+			buf[0] = 0;
+			return buf;
+		}
 		if (readen == 0)
 			break;
 		else if (readen < 0) {
@@ -76,6 +93,7 @@ char *input_names(int fd, char **endp)
 			break;
 		}
 		filled += readen;
+		gpicker_bytes_readen = filled;
 		if (bufsize - filled < MIN_BUFSIZE_FREE) {
 			bufsize = filled + MIN_BUFSIZE_FREE * 2;
 			buf = xrealloc(buf, bufsize);
@@ -119,7 +137,55 @@ void read_filenames(int fd)
 		add_filename(start, dirlength);
 	}
 
-	_quicksort_top(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
+	_quicksort_top(files, nfiles, sizeof(struct filename),
+		       (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
+}
+
+static
+gboolean idle_func(gpointer _dummy)
+{
+	if (async_loading_loop) {
+		gpicker_loading_completed = TRUE;
+		g_main_loop_quit(async_loading_loop);
+	}
+}
+
+static
+gpointer do_read_filenames_async(gpointer _dummy)
+{
+	read_filenames(current_fd);
+	g_idle_add(idle_func, 0);
+	return 0;
+}
+
+void read_filenames_with_main_loop(int fd)
+{
+	GMainLoop *loop = g_main_loop_new(g_main_context_get_thread_default(), FALSE);
+	async_loading_loop = loop;
+
+	current_fd = fd;
+
+	void *rv = g_thread_create_full(do_read_filenames_async,
+					0,
+					0,
+					FALSE,
+					TRUE,
+					G_THREAD_PRIORITY_NORMAL,
+					0);
+
+	g_main_loop_run(loop);
+	g_main_loop_unref(loop);
+
+	current_fd = -1;
+	async_loading_loop = 0;
+}
+
+void read_filenames_abort(void)
+{
+	reading_aborted = TRUE;
+	if (async_loading_loop) {
+		g_main_loop_quit(async_loading_loop);
+	}
 }
 
 void read_filenames_from_mlocate_db(int fd)

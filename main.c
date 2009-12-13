@@ -47,6 +47,8 @@ struct vector filtered = {.eltsize = sizeof(struct filter_result)};
 
 static char *init_filter;
 
+static
+gboolean program_exited;
 
 static void filter_tree_view_tail();
 
@@ -177,7 +179,11 @@ void setup_column(void)
 static
 void exit_program(void)
 {
-	gtk_main_quit();
+	program_exited = TRUE;
+	if (!gpicker_loading_completed)
+		read_filenames_abort();
+	else
+		gtk_main_quit();
 }
 
 static
@@ -240,6 +246,9 @@ static
 void on_entry_changed(GtkEditable *editable,
 		      gpointer data)
 {
+	if (!gpicker_loading_completed)
+		return;
+
 	timing_t start = start_timing();
 
 	char *text = g_strdup(gtk_entry_get_text(GTK_ENTRY(editable)));
@@ -268,11 +277,22 @@ void set_window_title(void)
 }
 
 static
+gboolean async_load_callback(void *_dummy)
+{
+	if (gpicker_loading_completed)
+		return FALSE;
+
+	char *title = g_strdup_printf("Loading filelist (%d bytes) - gpicker", gpicker_bytes_readen);
+	gtk_window_set_title(top_window, title);
+	free(title);
+
+	return TRUE;
+}
+
+static
 void setup_filenames(void)
 {
 	FILE *pipe;
-
-	set_window_title();
 
 	if (project_type && !strcmp(project_type, "mlocate")) {
 		int fd = open(project_dir, O_RDONLY);
@@ -302,7 +322,15 @@ void setup_filenames(void)
 		perror("failed to spawn find");
 		exit(1);
 	}
-	read_filenames(fileno(pipe));
+
+	g_timeout_add(250, async_load_callback, 0);
+	gtk_widget_set_sensitive(GTK_WIDGET(tree_view), FALSE);
+
+	read_filenames_with_main_loop(fileno(pipe));
+
+	gtk_widget_set_sensitive(GTK_WIDGET(tree_view), TRUE);
+	set_window_title();
+
 	pclose(pipe);
 }
 
@@ -531,6 +559,7 @@ int main(int argc, char **argv)
 
 	finish_timing(tstart, "setup_data");
 
-	gtk_main();
+	if (!program_exited)
+		gtk_main();
 	return 0;
 }
