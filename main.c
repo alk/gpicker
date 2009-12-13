@@ -22,6 +22,7 @@
 #include <gdk/gdkkeysyms.h>
 #include <glade/glade.h>
 #include <sys/types.h>
+#include <signal.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -290,9 +291,30 @@ gboolean async_load_callback(void *_dummy)
 }
 
 static
+int my_popen(char *string, GPid *child_pid)
+{
+	char *argv[] = {"/bin/sh", "-c", string, 0};
+	int fd;
+	gboolean ok = g_spawn_async_with_pipes(0, // work dir
+					       argv,
+					       0, //envp
+					       0, // flags
+					       0, 0, //child setup & user data
+					       child_pid,
+					       0, // stdin
+					       &fd, //stdout
+					       0, //stderr
+					       0);
+	if (!ok)
+		fd = -1;
+	return fd;
+}
+
+static
 void setup_filenames(void)
 {
-	FILE *pipe;
+	int pipe;
+	GPid pid = 0;
 
 	if (project_type && !strcmp(project_type, "mlocate")) {
 		int fd = open(project_dir, O_RDONLY);
@@ -306,19 +328,20 @@ void setup_filenames(void)
 	}
 
 	if (read_stdin)
-		pipe = stdin;
+		pipe = fileno(stdin);
 	else if (!project_type || !strcmp(project_type, "default"))
-		pipe = popen("find '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*'"
-			     " -a '!' -wholename '*.svn/*' -a '!' -wholename '*.bzr/*'"
-			     " -a '!' -wholename '*CVS/*' -type f -print0","r");
+		pipe = my_popen("find '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*'"
+				" -a '!' -wholename '*.svn/*' -a '!' -wholename '*.bzr/*'"
+				" -a '!' -wholename '*CVS/*' -type f -print0",
+				&pid);
 	else if (!strcmp(project_type, "git"))
-		pipe = popen("git ls-files --exclude-standard -c -o -z", "r");
+		pipe = my_popen("git ls-files --exclude-standard -c -o -z", &pid);
 	else if (!strcmp(project_type, "hg"))
-		pipe = popen("hg locate -0", "r");
+		pipe = my_popen("hg locate -0", &pid);
 	else if (!strcmp(project_type, "bzr"))
-		pipe = popen("bzr ls -R --versioned --unknown --null", "r");
+		pipe = my_popen("bzr ls -R --versioned --unknown --null", &pid);
 
-	if (!pipe) {
+	if (pipe < 0) {
 		perror("failed to spawn find");
 		exit(1);
 	}
@@ -326,12 +349,13 @@ void setup_filenames(void)
 	g_timeout_add(250, async_load_callback, 0);
 	gtk_widget_set_sensitive(GTK_WIDGET(tree_view), FALSE);
 
-	read_filenames_with_main_loop(fileno(pipe));
+	read_filenames_with_main_loop(pipe);
 
 	gtk_widget_set_sensitive(GTK_WIDGET(tree_view), TRUE);
 	set_window_title();
 
-	pclose(pipe);
+	kill(pid, SIGINT);
+	close(pipe);
 }
 
 static
