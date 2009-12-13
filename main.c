@@ -370,8 +370,6 @@ void setup_data(void)
 {
 	list_store = gtk_list_store_new(1, G_TYPE_INT);
 	gtk_tree_view_set_model(tree_view, GTK_TREE_MODEL(list_store));
-	setup_filenames();
-	setup_column();
 
 	GtkEditable *editable = GTK_EDITABLE(name_entry);
 
@@ -381,6 +379,9 @@ void setup_data(void)
 		gtk_editable_set_position(editable, len);
 		gtk_editable_select_region(editable, 0, len);
 	}
+
+	setup_filenames();
+	setup_column();
 
 	on_entry_changed(editable, 0);
 }
