@@ -1,5 +1,6 @@
 #ifndef XMALLOC_H
 #define XMALLOC_H
+#include <sys/types.h>
 
 __attribute__((noreturn))
 void memory_exhausted(void);
