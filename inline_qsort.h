@@ -89,8 +89,11 @@ typedef struct
       stack first, with the algorithm then concentrating on the
       smaller partition.  This *guarantees* no more than log (total_elems)
       stack size is needed (actually O(1) in this case)!  */
+
+typedef int (*qsort_cmp_fn)(const void *, const void *); 
+
 static inline
-void _quicksort (void *const pbase, size_t total_elems, size_t size, __compar_fn_t cmp)
+void _quicksort (void *const pbase, size_t total_elems, size_t size, qsort_cmp_fn cmp)
 {
   register char *base_ptr = (char *) pbase;
 

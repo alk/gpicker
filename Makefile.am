@@ -4,7 +4,7 @@ gpicker_SOURCES = main.c scorer.c filtration.c vector.c xmalloc.c \
 gpicker_LDADD = @gtk2_LIBS@
 AM_CFLAGS = -DPKGDATADIR=\"$(pkgdatadir)\" @gtk2_CFLAGS@
 
-dist_pkgdata_DATA=gpicker.glade gpicker.el
+dist_pkgdata_DATA=gpicker.el
 
 if HAVE_CHECK
 

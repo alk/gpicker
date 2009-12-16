@@ -1,3 +1,9 @@
+OSX:
+PKG_CONFIG_PATH= /Library/Frameworks/Glib.framework/Resources/dev/lib/pkgconfig:/Library/Frameworks/Cairo.framework/Resources/dev/lib/pkgconfig:/Library/Frameworks/Gtk.framework/Resources/dev/lib/pkgconfig
+
+download gtk from:
+http://www.gtk-osx.org/
+
 gpicker version 1.0
 
 Copying and distribution of this file, with or without modification,
