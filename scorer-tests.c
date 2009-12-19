@@ -125,6 +125,13 @@ START_TEST(test_right_match)
 }
 END_TEST
 
+START_TEST(test_scorer_optimization_bug)
+{
+	assert_scores(0x0101201, "ClassLoadingImpl.c", "clload", 0);
+	assert_scores(0x0100800, "play", "pla", 0);
+}
+END_TEST
+
 static
 void setup(void)
 {
@@ -149,6 +156,7 @@ Suite *scorer_suite (void)
 	T(test_slash_handling);
 	T(test_right_match);
 	T(test_empty_string);
+	T(test_scorer_optimization_bug);
 
 	return s;
 #undef T

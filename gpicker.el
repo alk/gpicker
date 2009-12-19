@@ -47,61 +47,80 @@
 
 ;;; Code
 
+(require 'ffap)
+
 (defvar *gpicker-path* "gpicker")
+(defvar *gpicker-extra-args* '("--disable-bzr" ;; bzr builtin file listing is just too slow
+                               "--multiselect"))
 (defvar *gpicker-project-dir* nil)
-(defvar *gpicker-project-type* nil)
+(defvar *gpicker-project-type* "guess")
 (defvar *gpicker-errors-log* (expand-file-name "~/gpicker-errors.log"))
 
-(defun gpicker-pick (dir)
-  (unless *gpicker-project-dir*
-    (error "visit gpicker project via 'gpicker-visit-project first!"))
-  (let ((chooser-buffer (generate-new-buffer "*gpicker*")))
-    (unwind-protect (let ((status (call-process *gpicker-path*
-                                                nil ;; input
-                                                (list chooser-buffer *gpicker-errors-log*)
-                                                nil ;; dont redisplay
-                                                "-t"
-                                                (or *gpicker-project-type* "default")
-                                                dir)))
+(defun gpicker-grab-stdout (&rest call-process-args)
+  (with-temp-buffer
+    (unwind-protect (let ((status (apply #'call-process
+                                         (car call-process-args)
+                                         nil
+                                         (list (current-buffer) *gpicker-errors-log*)
+                                         nil
+                                         (cdr call-process-args))))
                       (if (eql status 0)
-                          (save-excursion
-                            (set-buffer chooser-buffer)
-                            (read (buffer-string)))
-                        (message "gpicker exited with status %d" status)
+                          (buffer-string)
+                        (message "%s exited with status %d" (car call-process-args) status)
                         (save-excursion
                           (set-buffer "*Messages*")
                           (goto-char (point-max))
                           (insert-file-contents *gpicker-errors-log*))
                         nil))
-      (delete-file *gpicker-errors-log*)
-      (with-current-buffer chooser-buffer
-	(set-buffer-modified-p nil))
-      (kill-buffer chooser-buffer)
-      (discard-input))))
+      (delete-file *gpicker-errors-log*))))
 
-(defun gpicker-guess-project-type (dir)
-  (cond ((file-accessible-directory-p (expand-file-name ".git" dir))
-         "git")))
+(defun gpicker-pick (dir)
+  (unless *gpicker-project-dir*
+    (error "visit gpicker project via 'gpicker-visit-project first!"))
+  (let ((gpicker-args (append *gpicker-extra-args*
+                               (list "-t"
+                                     (or *gpicker-project-type* "default")
+                                     dir)))
+        (at-point (ffap-string-at-point)))
+    (when (and at-point
+               (> (string-bytes at-point) 0))
+      (setq gpicker-args (list* "--init-filter" at-point gpicker-args)))
+    (unwind-protect (let ((rv (apply #'gpicker-grab-stdout
+                                     *gpicker-path*
+                                     gpicker-args)))
+                      (and rv
+                           (split-string rv "\0" t)))
+      (discard-input))))
 
 (defun gpicker-set-project-type (type)
   "Sets type of current gpicker project"
-  (interactive (list (completing-read "Choose gpicker project type: " '("git" "default")
-                                      nil t nil nil "default")))
+  (interactive (list (completing-read "Choose gpicker project type: "
+                                      '("guess" "git" "hg"
+                                        "bzr" "default" "mlocate")
+                                      nil t nil nil "guess")))
   (setq *gpicker-project-type* type))
 
 (defun gpicker-visit-project (dir)
   "Selects current project directory for gpicker"
   (interactive "DSelect directory:")
   (cd dir)
-  (setq *gpicker-project-type* (gpicker-guess-project-type dir))
+  (setq *gpicker-project-type* "guess")
   (setq *gpicker-project-dir* (expand-file-name dir)))
 
+(defun gpicker-call-find-function (find-function file)
+  (setq file (expand-file-name file *gpicker-project-dir*))
+  (let ((revert-without-query (list (regexp-quote (abbreviate-file-name file)))))
+    (funcall find-function file)))
+
 (defun gpicker-do-find (find-function)
-  (let ((file (gpicker-pick *gpicker-project-dir*)))
-    (when file
-      (setq file (expand-file-name file *gpicker-project-dir*))
-      (let ((revert-without-query (list (regexp-quote (abbreviate-file-name file)))))
-        (funcall find-function file)))))
+  (let ((files (gpicker-pick *gpicker-project-dir*)))
+    (if (and (eql find-function #'find-file)
+             (eql (length files) 2))
+        (progn
+          (gpicker-call-find-function #'find-file (car files))
+          (gpicker-call-find-function #'find-file-other-window (cadr files)))
+      (dolist (file files)
+        (gpicker-call-find-function find-function file)))))
 
 (defun gpicker-find-file ()
   (interactive)

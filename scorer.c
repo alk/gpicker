@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Aliaksey Kandratsenka
+ * Copyright (C) 2008,2009 Aliaksey Kandratsenka
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -15,11 +15,14 @@
  * along with this program.  If not, see
  * `http://www.gnu.org/licenses/'.
  */
+// needed for memrchr, which use is commented out
+// #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+#include <inttypes.h>
 
 #include "scorer.h"
 
@@ -59,21 +62,79 @@ char normalize_char(char ch, unsigned *is_delimiter)
 
 #define MAX_PAT_LENGTH 32
 
-int score_string(const char *string,
-		 const struct scorer_query *query,
-		 const unsigned string_length,
-		 unsigned* match)
+static
+void initialize_prepared_pattern(const char *pattern,
+				 struct prepared_pattern *rv)
+{
+	unsigned previous_delimiter = 1;
+	int i;
+
+	for (i=0; i<rv->pat_length; i++) {
+		char ch = pattern[i];
+		rv->start_of_pattern_word[i] = previous_delimiter || ('A' <= ch && ch <= 'Z');
+		rv->translated_pattern[i] = normalize_char(ch, &previous_delimiter);
+	}
+
+	char fc_count = 0;
+	for (i = 0; i < rv->pat_length && fc_count < 4; i++) {
+		char ch = rv->translated_pattern[i];
+		if (!delimiter_p(ch)) {
+			rv->first_chars[fc_count*2] = ch;
+			rv->first_chars[fc_count*2+1] = toupper(ch);
+			fc_count++;
+		}
+	}
+	rv->fc_count = fc_count;
+}
+
+struct prepared_pattern *prepare_pattern(const struct scorer_query *query)
+{
+	const char *pattern = query->pattern;
+	const unsigned pat_length = strlen(pattern);
+
+	if (pat_length > MAX_PAT_LENGTH)
+		return 0;
+
+	char *start_of_pattern_word = pat_length ? malloc(pat_length) : 0;
+	char *translated_pattern = pat_length ? malloc(pat_length) : 0;
+
+	struct prepared_pattern *rv = malloc(sizeof(struct prepared_pattern));
+	rv->translated_pattern = translated_pattern;
+	rv->start_of_pattern_word = start_of_pattern_word;
+	rv->pat_length = pat_length;
+
+	if (pat_length)
+		initialize_prepared_pattern(pattern, rv);
+	return rv;
+}
+
+void free_prepared_pattern(struct prepared_pattern *p)
+{
+	if (!p)
+		return;
+	free(p->start_of_pattern_word);
+	free(p->translated_pattern);
+	free(p);
+}
+
+static inline
+int score_string_prepared_inline(const unsigned pat_length,
+				 const char *string,
+				 const struct scorer_query *query,
+				 const struct prepared_pattern *prepared_pattern,
+				 const unsigned string_length,
+				 unsigned* match)
 {
 	struct position {
 		int this_score;
 		int score;
 		int amount;
 	};
+
 	const char *pattern = query->pattern;
-	const unsigned pat_length = strlen(pattern);
-	struct position state[string_length][MAX_PAT_LENGTH];
-	unsigned start_of_pattern_word[pat_length];
-	char translated_pattern[pat_length];
+	struct position state[string_length][__builtin_constant_p(pat_length) ? pat_length : MAX_PAT_LENGTH];
+	char *start_of_pattern_word = prepared_pattern->start_of_pattern_word;
+	char *translated_pattern = prepared_pattern->translated_pattern;
 	unsigned i;
 	unsigned k;
 	unsigned previous_delimiter;
@@ -85,19 +146,46 @@ int score_string(const char *string,
 	if (string_length == 0)
 		return -1;
 
-	if (pat_length > MAX_PAT_LENGTH)
-		return -1;
-
 	dprintf("scoring string '%.*s' for pattern '%s'\n", string_length, string, pattern);
+
+#if 1
+	if (prepared_pattern->fc_count > 0) {
+		const char *p = string;
+		char ch;
+
+#define I(i) \
+		do { \
+			ch = prepared_pattern->first_chars[i*2];	\
+			if (ch) {					\
+				const char *next = memchr(p, ch, string + string_length - p); \
+				const char *next2 = memchr(p, prepared_pattern->first_chars[i*2+1], string + string_length - p); \
+				if (!next && !next2)			\
+					return -1;			\
+				if (!next)				\
+					next = next2;			\
+				else if (!next2)			\
+				next2 = next;				\
+				p = ((next < next2) ? next : next2) + 1; \
+			} \
+		} while (0)
+
+		I(0);
+
+		if (prepared_pattern->fc_count > 1) {
+			I(1);
+			if (prepared_pattern->fc_count > 2) {
+				I(2);
+				if (prepared_pattern->fc_count > 3)
+					I(3);
+			}
+		}
+
+#undef I
+	}
+#endif
 
 	memset(state, -1, sizeof(state));
 
-	previous_delimiter = 1;
-	for (i=0; i<pat_length; i++) {
-		char ch = pattern[i];
-		start_of_pattern_word[i] = previous_delimiter || ('A' <= ch && ch <= 'Z');
-		translated_pattern[i] = normalize_char(ch, &previous_delimiter);
-	}
 	previous_delimiter = 0;
 
 	for (i=0; i<string_length; i++) {
@@ -120,38 +208,40 @@ int score_string(const char *string,
 			state[i][0].amount = 0;
 			state[i][0].score = i > 0 ? state[i-1][0].score : -1;
 		}
-		max_k = i+1;
-		max_k = (max_k > pat_length) ? pat_length : max_k;
-		for (k=1; k<max_k; k++) {
-			char pat_ch = translated_pattern[k];
-			int prev_score;
-			char prev_pattern;
-			int amount;
-			int this_score;
-			if (ch != pat_ch) {
-			cont:
-				state[i][k].score = state[i-1][k].score;
-				state[i][k].amount = 0;
-				state[i][k].this_score = -1;
-				continue;
-			}
-			prev_score = state[i-1][k-1].score;
-			if (prev_score < 0)
-				goto cont;
-			amount = 0;
-			prev_pattern = translated_pattern[k-1];
-			if (at_word_start)
-				amount = start_of_pattern_word[k] ? PROPER_WORD_START : WILD_WORD_START;
-			this_score = prev_score + amount;
+		if (!__builtin_constant_p(pat_length) || pat_length > 1) {
+			max_k = i+1;
+			max_k = (max_k > pat_length) ? pat_length : max_k;
+			for (k=1; k<max_k; k++) {
+				char pat_ch = translated_pattern[k];
+				int prev_score;
+				char prev_pattern;
+				int amount;
+				int this_score;
+				if (ch != pat_ch) {
+				cont:
+					state[i][k].score = state[i-1][k].score;
+					state[i][k].amount = 0;
+					state[i][k].this_score = -1;
+					continue;
+				}
+				prev_score = state[i-1][k-1].score;
+				if (prev_score < 0)
+					goto cont;
+				amount = 0;
+				prev_pattern = translated_pattern[k-1];
+				if (at_word_start)
+					amount = start_of_pattern_word[k] ? PROPER_WORD_START : WILD_WORD_START;
+				this_score = prev_score + amount;
 
-			if (state[i-1][k-1].this_score >= 0 && !delimiter_p(pat_ch)) {
-				int candidate = state[i-1][k-1].this_score + ADJACENT;
-				if (candidate > this_score)
-					this_score = candidate, amount = ADJACENT;
+				if (state[i-1][k-1].this_score >= 0 && !delimiter_p(pat_ch)) {
+					int candidate = state[i-1][k-1].this_score + ADJACENT;
+					if (candidate > this_score)
+						this_score = candidate, amount = ADJACENT;
+				}
+				state[i][k].this_score = this_score;
+				state[i][k].amount = amount;
+				state[i][k].score = max(state[i-1][k].score, this_score);
 			}
-			state[i][k].this_score = this_score;
-			state[i][k].amount = amount;
-			state[i][k].score = max(state[i-1][k].score, this_score);
 		}
 	}
 
@@ -185,6 +275,123 @@ int score_string(const char *string,
 	}
 
 	return score;
+}
+
+
+/* partial compilation for pat_length == 1 */
+static __attribute__((noinline))
+int score_string_prepared_1(const char *string,
+			    const struct scorer_query *query,
+			    const struct prepared_pattern *prepared_pattern,
+			    const unsigned string_length,
+			    unsigned* match)
+{
+#if 0 /* this code is broken */
+	unsigned fake_match;
+	if (string_length == 0)
+		return -1;
+
+	if (!match)
+		match = &fake_match;
+
+	char ch_lo = prepared_pattern->translated_pattern[0];
+	char ch_up = toupper(prepared_pattern->translated_pattern[0]);
+	if (ch_lo == ch_up) {
+		const char *p;
+		// ignoring pre-match delimiter
+		if (query->right_match) {
+			p = (string[0] == ch_lo) ? string : memrchr(string, ch_lo, string_length);
+		} else
+			p = memchr(string, ch_lo, string_length);
+		match[0] = string - p;
+		return (p == string) ? PROPER_WORD_START : 0;
+	}
+
+	if (!query->right_match) {
+		if (string[0] == ch_lo) {
+			match[0] = 0;
+			return PROPER_WORD_START;
+		}
+		const char *m_up = memchr(string, ch_up, string_length);
+
+		if (m_up) {
+			match[0] = m_up - string;
+			return PROPER_WORD_START;
+		}
+		const char *m_lo = memchr(string, ch_lo, string_length);
+		if (!m_lo)
+			return -1;
+
+		// should search for ch_lo after delimiter
+		match[0] = m_lo - string;
+		return delimiter_p(m_lo[0]) ? PROPER_WORD_START : 0;
+	} else {
+		const char *m_lo = memrchr(string, ch_lo, string_length);
+		const char *m_up = memrchr(string, ch_up, string_length);
+
+		if (m_up) {
+			match[0] = m_up - string;
+			return PROPER_WORD_START;
+		}
+
+		if (!m_lo)
+			return -1;
+
+		// should search for ch_lo after delimiter
+		match[0] = m_lo - string;
+		return ((m_lo == string) || delimiter_p(m_lo[-1]))? PROPER_WORD_START : 0;
+	}
+#else
+	return score_string_prepared_inline(1, string, query, prepared_pattern, string_length, match);
+#endif
+}
+
+int score_string_prepared(const char *string,
+			  const struct scorer_query *query,
+			  const struct prepared_pattern *prepared_pattern,
+			  const unsigned string_length,
+			  unsigned* match)
+{
+	if (!prepared_pattern)
+		return -1;
+
+	if (prepared_pattern->pat_length == 1) {
+		return score_string_prepared_1(string, query, prepared_pattern, string_length, match);
+	}
+
+	return score_string_prepared_inline(prepared_pattern->pat_length, string, query, prepared_pattern, string_length, match);
+}
+
+int score_string(const char *string,
+		 const struct scorer_query *query,
+		 const unsigned string_length,
+		 unsigned* match)
+{
+	const char *pattern = query->pattern;
+	const unsigned pat_length = strlen(pattern);
+	char start_of_pattern_word[pat_length];
+	char translated_pattern[pat_length];
+
+	if (pat_length == 0)
+		return 0;
+
+	if (string_length == 0)
+		return -1;
+
+	if (pat_length > MAX_PAT_LENGTH)
+		return -1;
+
+
+	struct prepared_pattern p = {
+		.translated_pattern = translated_pattern,
+		.start_of_pattern_word = start_of_pattern_word,
+		.pat_length = pat_length
+	};
+
+	if (pat_length)
+		initialize_prepared_pattern(pattern, &p);
+
+	return score_string_prepared(string, query, &p, string_length, match);
 }
 
 int score_simple_string(const char *string, const char *pattern, unsigned *match)

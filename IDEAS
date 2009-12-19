@@ -6,24 +6,26 @@ Things to think/implement later:
 - support exclude patterns.
   This can be a low-tech solution for above mentioned problem of many arch subtrees in linux.
 
-- allow picking several files. Useful for opening .c and .h simultaneously
+DONE - allow picking several files. Useful for opening .c and .h simultaneously
 
-- 'find at point'. pre-fill name entry with text under emacs' point. Do it intelligently on emacs side.
+DONE - 'find at point'. pre-fill name entry with text under emacs' point. Do it intelligently on emacs side.
 
-- support more vcs types, so that ignored files are ignored
+- support more vcs types, so that ignored files are ignored (bzr & mercurial done by avsej)
+-- support svn somehow
+-- it seems that it's easier (and sometimes more correct) to just use our own
+    excludes implementation and don't bother with vcs ignores
 -- make it user-configurable via config file
 
 - support caching filelist compactly in single file
   This will boost performance on cold dentry cache, or on very large projects (openjdk)
   (usually, Linux's VFS is fast enough).
 -- consider automatic cache updating by looking at directories' mtimes
+-- OR support picking from mlocate database with optional updating
 
-- work on filtering performance. On linux kernel it can sometimes be around 0.5 second.
-  Looks like GTK issue. Consider adding tail of filelist in background.
-
-DONE - (low-tech alternative of previous item) limit number of items in listview with reasonable value
+DONE - (low-tech speedup alternative) limit number of items in listview with reasonable value
   (currently 1E3). This fixes filtration times on large projects.
--- support turning limit off
+  NOTE: this actually works great
+-- support turning limit off (????) (probably, not in this life)
 
 - load filelist in separate thread and support filtration while it's loading.
   Useful on cold project tree and enables usage of this tool for casual file-finding use.
@@ -33,3 +35,7 @@ DONE - (low-tech alternative of previous item) limit number of items in listview
 
 - Consider not matching '-' and '_' delimiters, but only using them as word start markers.
   This will allow using '-' for matching camelcase names.
+
+- I need good support for git submodules
+
+- support utf8 (probably with special extra arg if usage of wchar is much slower) 

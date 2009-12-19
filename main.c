@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Aliaksey Kandratsenka
+ * Copyright (C) 2008,2009 Aliaksey Kandratsenka
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -17,115 +17,66 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <glib.h>
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 #include <sys/types.h>
+#include <signal.h>
+#include <sys/stat.h>
 #include <unistd.h>
-#include <memory.h>
 #include <fcntl.h>
 #include <errno.h>
 #include "config.h"
+#include <assert.h>
 
 #include "xmalloc.h"
 #include "scorer.h"
 #include "filtration.h"
 #include "vector.h"
 #include "timing.h"
+#include "inline_qsort.h"
+#include "loading.h"
 
 static GtkWindow *top_window;
 static GtkEntry *name_entry;
 static GtkTreeView *tree_view;
 static GtkListStore *list_store;
 
-struct vector files_vector = {.eltsize = sizeof(struct filename)};
 struct vector filtered = {.eltsize = sizeof(struct filter_result)};
 
-static
-void add_filename(char *p, int dirlength)
-{
-	struct filename *last = vector_append(&files_vector);
-
-	last->p = p;
-	last->dirlength = dirlength;
-}
-
-#define INIT_BUFSIZE (128*1024)
-#define MIN_BUFSIZE_FREE 32768
+static char *init_filter;
+static gboolean multiselect;
+static char *project_type;
+static char *project_dir;
+static gboolean read_stdin;
+static gboolean disable_bzr;
+static gboolean disable_hg;
 
 static
-char *input_names(int fd, char **endp)
-{
-	int bufsize = INIT_BUFSIZE;
-	char *buf = xmalloc(bufsize);
-	int filled = 0;
+gboolean program_exited;
 
-	do {
-		int readen = read(fd, buf+filled, bufsize-filled);
-		if (readen == 0)
-			break;
-		else if (readen < 0) {
-			if (errno == EINTR)
-				continue;
-			perror("read_names");
-			break;
-		}
-		filled += readen;
-		if (bufsize - filled < MIN_BUFSIZE_FREE) {
-			bufsize = filled + MIN_BUFSIZE_FREE * 2;
-			buf = xrealloc(buf, bufsize);
-		}
-	} while (1);
-	if (filled) {
-			if (buf[filled-1])
-					filled++;
-			buf = xrealloc(buf, filled);
-			buf[filled-1] = 0;
-	}
-	*endp = buf+filled;
-	return buf;
-}
-
-static
-int filename_compare(struct filename *a, struct filename *b)
-{
-	return strcasecmp(a->p, b->p);
-}
-
-static
-void read_filenames(int fd)
-{
-	char *endp;
-	char *buf = input_names(fd, &endp);
-	char *p = buf;
-
-	while (p < endp) {
-		int dirlength = 0;
-		char *start;
-		char ch;
-		if (p[0] == '.' && p[1] == '/')
-			p += 2;
-		start = p;
-		while ((ch = *p++))
-			if (ch == '/')
-				dirlength = p - start;
-		add_filename(start, dirlength);
-	}
-
-	qsort(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare);
-}
+static void filter_tree_view_tail();
 
 static
 void filter_tree_view(char *pattern)
 {
-	struct filter_result *results;
+	filter_files(pattern, filter_tree_view_tail);
+}
 
+static
+char *applied_pattern;
+
+static
+void filter_tree_view_tail(char *pattern)
+{
 	GtkTreeIter iter;
 	timing_t start;
 	int i, n;
+	struct filter_result *results = (struct filter_result *)filtered.buffer;
 
-	start = start_timing();
-	results = filter_files(pattern);
-	finish_timing(start, "filter_files");
+	if (applied_pattern)
+		free(applied_pattern);
+	applied_pattern = xstrdup(pattern);
 
 	start = start_timing();
 
@@ -138,8 +89,8 @@ void filter_tree_view(char *pattern)
 	start = start_timing();
 
 	n = filtered.used;
-	if (n > 1000)
-		n = 1000;
+	if (n > FILTER_LIMIT)
+		n = FILTER_LIMIT;
 	for (i=0; i<n; i++) {
 		gtk_list_store_append(list_store, &iter);
 		gtk_list_store_set(list_store, &iter,
@@ -176,10 +127,10 @@ void cell_data_func(GtkTreeViewColumn *col,
 	gtk_tree_model_get(model, iter, 0, &index, -1);
 	text = files[index].p;
 	if (text) {
-		const char *pattern = gtk_entry_get_text(GTK_ENTRY(name_entry));
+		const char *pattern = applied_pattern;
 		int patlen = strlen(pattern);
 		unsigned match[patlen];
-		const void *filter;
+		void *filter;
 		filter_func filter_func;
 		filter_destructor destructor = 0;
 		struct filter_result result;
@@ -233,7 +184,32 @@ void setup_column(void)
 static
 void exit_program(void)
 {
-	gtk_main_quit();
+	program_exited = TRUE;
+	if (!gpicker_loading_completed)
+		read_filenames_abort();
+	else
+		gtk_main_quit();
+}
+
+static
+void selection_printer(gpointer data,
+		       gpointer _dummy)
+{
+	static int did_output = 0;
+	GtkTreePath *path = data;
+	GtkTreeIter iter;
+	gint idx;
+
+	if (did_output)
+		putchar(name_separator[0]);
+	did_output = 1;
+
+	gtk_tree_model_get_iter(GTK_TREE_MODEL(list_store), &iter, path);
+	gtk_tree_model_get(GTK_TREE_MODEL(list_store), &iter, 0, &idx, -1);
+
+	fputs(files[idx].p, stdout);
+
+	gtk_tree_path_free(path);
 }
 
 static
@@ -245,28 +221,10 @@ void print_selection(void)
 	gint idx;
 
 	list = gtk_tree_selection_get_selected_rows(sel, 0);
-	if (!list) {
-		puts("nil");
+	if (!list)
 		return;
-	}
 
-	gtk_tree_model_get_iter(GTK_TREE_MODEL(list_store), &iter, list->data);
-	gtk_tree_model_get(GTK_TREE_MODEL(list_store), &iter, 0, &idx, -1);
-
-	{
-		char *p = files[idx].p;
-		char ch;
-		putchar('"');
-		while ((ch = *p++)) {
-			if (ch == '"' || ch == '\\') {
-				putchar('\\');
-			}
-			putchar(ch);
-		}
-		puts("\"");
-	}
-
-	g_list_foreach(list, (GFunc) gtk_tree_path_free, NULL);
+	g_list_foreach(list, selection_printer, NULL);
 	g_list_free(list);
 }
 
@@ -283,7 +241,6 @@ gboolean on_top_window_keypress(GtkWidget *_dummy,
 				gpointer _dummy2)
 {
 	if (event->keyval == GDK_Escape) {
-		puts("nil");
 		exit_program();
 		return TRUE;
 	}
@@ -294,6 +251,9 @@ static
 void on_entry_changed(GtkEditable *editable,
 		      gpointer data)
 {
+	if (!gpicker_loading_completed)
+		return;
+
 	timing_t start = start_timing();
 
 	char *text = g_strdup(gtk_entry_get_text(GTK_ENTRY(editable)));
@@ -304,50 +264,102 @@ void on_entry_changed(GtkEditable *editable,
 }
 
 static
-char *project_type;
-static
-char *project_dir;
-
-static
 void set_window_title(void)
 {
 	char work_dir[PATH_MAX];
-	const gchar *title;
-	char *dirptr = work_dir;
+	gchar *title;
 
-	getcwd(work_dir, sizeof(work_dir));
+	if (read_stdin) {
+		gtk_window_set_title(top_window, "pick something");
+		return;
+	}
 
-	if (!work_dir[0])
+	if (!getcwd(work_dir, sizeof(work_dir)) || !work_dir[0])
 		return;
 
 	title = g_strdup_printf("%s - pick a file", work_dir);
 	gtk_window_set_title(top_window, title);
+	free(title);
+}
+
+static
+gboolean async_load_callback(void *_dummy)
+{
+	if (gpicker_loading_completed)
+		return FALSE;
+
+	char *title = g_strdup_printf("Loading filelist (%d bytes) - gpicker", gpicker_bytes_readen);
+	gtk_window_set_title(top_window, title);
+	free(title);
+
+	return TRUE;
+}
+
+static
+int my_popen(char *string, GPid *child_pid)
+{
+	char *argv[] = {"/bin/sh", "-c", string, 0};
+	int fd;
+	gboolean ok = g_spawn_async_with_pipes(0, // work dir
+					       argv,
+					       0, //envp
+					       0, // flags
+					       0, 0, //child setup & user data
+					       child_pid,
+					       0, // stdin
+					       &fd, //stdout
+					       0, //stderr
+					       0);
+	if (!ok)
+		fd = -1;
+	return fd;
 }
 
 static
 void setup_filenames(void)
 {
-	int rv = chdir(project_dir);
-	FILE *pipe;
+	int pipe;
+	GPid pid = 0;
 
-	if (rv) {
-		perror("cannot chdir to project directory");
-		exit(1);
+	if (project_type && !strcmp(project_type, "mlocate")) {
+		int fd = open(project_dir, O_RDONLY);
+		if (fd < 0) {
+			perror("setup_filenames:open");
+			exit(1);
+		}
+		read_filenames_from_mlocate_db(fd);
+		close(fd);
+		return;
 	}
 
-	set_window_title();
-
-	if (!project_type || !strcmp(project_type, "default"))
-		pipe = popen("find . -type f -print0","r");
+	if (read_stdin)
+		pipe = fileno(stdin);
+	else if (!project_type || !strcmp(project_type, "default"))
+		pipe = my_popen("find . -type f -print0",
+				&pid);
 	else if (!strcmp(project_type, "git"))
-		pipe = popen("git ls-files --exclude-standard -c -o -z", "r");
+		pipe = my_popen("git ls-files --exclude-standard -c -o -z", &pid);
+	else if (!strcmp(project_type, "hg"))
+		pipe = my_popen("hg locate -0", &pid);
+	else if (!strcmp(project_type, "bzr"))
+		pipe = my_popen("bzr ls -R --versioned --unknown --null", &pid);
 
-	if (!pipe) {
+	if (pipe < 0) {
 		perror("failed to spawn find");
 		exit(1);
 	}
-	read_filenames(fileno(pipe));
-	pclose(pipe);
+
+	g_timeout_add(250, async_load_callback, 0);
+	gtk_widget_set_sensitive(GTK_WIDGET(tree_view), FALSE);
+
+	read_filenames_with_main_loop(pipe);
+
+	gtk_widget_set_sensitive(GTK_WIDGET(tree_view), TRUE);
+	set_window_title();
+
+	if (pid)
+		kill(pid, SIGINT);
+	close(pipe);
 }
 
 static
@@ -355,9 +367,20 @@ void setup_data(void)
 {
 	list_store = gtk_list_store_new(1, G_TYPE_INT);
 	gtk_tree_view_set_model(tree_view, GTK_TREE_MODEL(list_store));
+
+	GtkEditable *editable = GTK_EDITABLE(name_entry);
+
+	if (init_filter) {
+		int len = strlen(init_filter);
+		gtk_entry_set_text(name_entry, init_filter);
+		gtk_editable_set_position(editable, len);
+		gtk_editable_select_region(editable, 0, len);
+	}
+
 	setup_filenames();
 	setup_column();
-	on_entry_changed(GTK_EDITABLE(name_entry), 0);
+
+	on_entry_changed(editable, 0);
 }
 
 static
@@ -403,9 +426,75 @@ void setup_signals(void)
 
 static
 GOptionEntry entries[] = {
-	{"project-type", 't', 0, G_OPTION_ARG_STRING, &project_type, "respect ignored files for given kind of VCS (default, git)", 0},
+	{"project-type", 't', 0, G_OPTION_ARG_STRING, &project_type, "respect ignored files for given kind of VCS (default, git, bzr, hg, guess)", 0},
+	{"disable-bzr", 0, 0, G_OPTION_ARG_NONE, &disable_bzr, "disable autodetection of Bazaar project type", 0},
+	{"disable-hg", 0, 0, G_OPTION_ARG_NONE, &disable_hg, "disable autodetection of Mercurial project type", 0},
+	{"name-separator", 0, 0, G_OPTION_ARG_STRING, &name_separator, "separator of filenames from stdin (\\0 is default)", 0},
+	{"dir-separator", 0, 0, G_OPTION_ARG_STRING, &dir_separator, "separator of directory names from stdin (/ is default)", 0},
+	{"eat-prefix", 0, 0, G_OPTION_ARG_STRING, &eat_prefix, "eat this prefix from names (./ is default)", 0},
+	{"multiselect", 0, 0, G_OPTION_ARG_NONE, &multiselect, "enable multiselect", 0},
+	{"init-filter", 0, 0, G_OPTION_ARG_STRING, &init_filter, "initial filter value", 0},
 	{0}
 };
+
+static
+int isdir(char* name)
+{
+    struct stat statbuf;
+    if (stat(name, &statbuf) < 0 || !S_ISDIR(statbuf.st_mode)) {
+        return 0;
+    }
+    return 1;
+}
+
+static
+void enter_project_dir()
+{
+	int rv = chdir(project_dir);
+
+	if (rv) {
+		perror("cannot chdir to project directory");
+		exit(1);
+	}
+
+	if (project_type && !strcmp(project_type, "guess")) {
+		if (isdir(".git"))
+			project_type = "git";
+		else if (!disable_hg && isdir(".hg"))
+			project_type = "hg";
+		else if (!disable_bzr && isdir(".bzr"))
+			project_type = "bzr";
+		else
+			project_type = "default";
+	}
+}
+
+static
+void process_separator(char **separator_place, char *name, char *def)
+{
+	char *separator = *separator_place;
+	if (separator) {
+		if (!read_stdin)
+			fprintf(stderr, "Warning: --%s with usual project is useless\n", name);
+
+		if (!strcmp(separator, "\\n"))
+			separator = "\n";
+		if (!strcmp(separator, "\\r"))
+			separator = "\r";
+		else if (!strcmp(separator, "\\0"))
+			separator = "";
+		else if (!strcmp(separator, "\\t"))
+			separator = "\t";
+
+		if (strlen(separator) > 1) {
+			fprintf(stderr, "%s of more than one character is not supported\n", name);
+			exit(1);
+		}
+	} else
+		separator = def;
+
+	*separator_place = separator;
+}
 
 static
 void parse_options(int argc, char **argv)
@@ -425,11 +514,28 @@ void parse_options(int argc, char **argv)
 		fputs(g_option_context_get_help(context, TRUE, NULL), stderr);
 		exit(1);
 	}
-	if (project_type && strcmp(project_type, "git") && strcmp(project_type, "default")) {
+	if (project_type && strcmp(project_type, "guess") &&
+			strcmp(project_type, "git") &&
+			strcmp(project_type, "hg") &&
+			strcmp(project_type, "bzr") &&
+			strcmp(project_type, "default") &&
+			strcmp(project_type, "mlocate")) {
 		fprintf(stderr, "Unknown project type specified: %s\n", project_type);
 		exit(1);
 	}
+
 	project_dir = argv[1];
+	read_stdin = !strcmp(project_dir, "-");
+
+	process_separator(&name_separator, "name-separator", "");
+	process_separator(&dir_separator, "dir-separator", "/");
+	filter_dir_separator = dir_separator[0];
+
+	if (read_stdin) {
+		if (project_type)
+			fprintf(stderr, "Warning: project type with stdin input has no effect\n");
+	} else
+		enter_project_dir();
 }
 
 static
@@ -473,6 +579,7 @@ int main(int argc, char **argv)
 {
 	timing_t tstart = start_timing();
 
+	g_thread_init(0);
 	parse_options(argc, argv);
 	gtk_init(0, 0);
 
@@ -500,10 +607,16 @@ int main(int argc, char **argv)
 
 	setup_data();
 
+	if (multiselect) {
+		gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree_view),
+					    GTK_SELECTION_MULTIPLE);
+	}
+
 	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, 0);
 
 	finish_timing(tstart, "setup_data");
 
-	gtk_main();
+	if (!program_exited)
+		gtk_main();
 	return 0;
 }

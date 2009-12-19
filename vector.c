@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Aliaksey Kandratsenka
+ * Copyright (C) 2008,2009 Aliaksey Kandratsenka
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,4 +36,16 @@ void vector_clear(struct vector *v)
 	v->used = 0;
 	v->buffer = realloc(v->buffer, 0);
 	v->avail = 0;
+}
+
+struct vector *vector_splice_into(struct vector *src, struct vector *dst)
+{
+	if (dst->buffer)
+		free(dst->buffer);
+	*dst = *src;
+	src->used = 0;
+	src->buffer = 0;
+	src->avail = 0;
+
+	return dst;
 }

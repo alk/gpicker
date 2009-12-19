@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008,2009 Aliaksey Kandratsenka
+ * Copyright (C) 2009 Aliaksey Kandratsenka
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -15,38 +15,35 @@
  * along with this program.  If not, see
  * `http://www.gnu.org/licenses/'.
  */
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
+#include <glib.h>
 #include "xmalloc.h"
 
-__attribute__((noreturn))
-void memory_exhausted(void)
-{
-	fputs("memory exhausted", stderr);
-	abort();
-}
+#include "refcounted_str.h"
 
-void *xmalloc(size_t size)
+struct refcounted_str *refcounted_str_dup(char *str)
 {
-	void *rv = malloc(size);
-	if (!rv)
-		memory_exhausted();
+	struct refcounted_str *rv = xmalloc(sizeof(struct refcounted_str));
+	str = xstrdup(str);
+
+	rv->refcnt = 1;
+	rv->str = str;
 	return rv;
 }
 
-void *xrealloc(void *ptr, size_t size)
-{
-	ptr = realloc(ptr, size);
-	if (!ptr)
-		memory_exhausted();
-	return ptr;
+void refcounted_str_get(struct refcounted_str **ptr, struct refcounted_str *src) {
+	if (src)
+		src->refcnt++;
+	*ptr = src;
 }
 
-char *xstrdup(const char *p)
-{
-	int len = strlen(p) + 1;
-	char *rv = xmalloc(len);
-	memcpy(rv, p, len);
-	return rv;
+void refcounted_str_put(struct refcounted_str **ptr) {
+	struct refcounted_str *rstr = *ptr;
+	*ptr = 0;
+	if (rstr)
+		if (--rstr->refcnt == 0) {
+			free(rstr->str);
+			free(rstr);
+		}
 }
