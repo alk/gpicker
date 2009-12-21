@@ -342,9 +342,9 @@ void setup_filenames(void)
 				" -a '!' -wholename '*CVS/*' -type f -print0",
 				&pid);
 	else if (!strcmp(project_type, "git"))
-		pipe = my_popen("git ls-files --exclude-standard -c -o -z", &pid);
+		pipe = my_popen("git ls-files --exclude-standard -c -o -z .", &pid);
 	else if (!strcmp(project_type, "hg"))
-		pipe = my_popen("hg locate -0", &pid);
+		pipe = my_popen("hg locate -0 --include .", &pid);
 	else if (!strcmp(project_type, "bzr"))
 		pipe = my_popen("bzr ls -R --versioned --unknown --null", &pid);
 
