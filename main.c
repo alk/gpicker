@@ -444,11 +444,38 @@ GOptionEntry entries[] = {
 static
 int isdir(char* name)
 {
-    struct stat statbuf;
-    if (stat(name, &statbuf) < 0 || !S_ISDIR(statbuf.st_mode)) {
-        return 0;
-    }
-    return 1;
+	struct stat statbuf;
+
+	if (stat(name, &statbuf) < 0 || !S_ISDIR(statbuf.st_mode)) {
+		return 0;
+	}
+	return 1;
+}
+
+static
+int check_parents(char* name)
+{
+	struct stat rootdir;
+	struct stat curdir;
+	int isroot, rv;
+	int cwd = dirfd(opendir("."));
+
+	stat("/", &rootdir);
+	while (1) {
+		if (isdir(name)) {
+			rv = 1;
+			break;
+		}
+		stat(".", &curdir);
+		isroot = (rootdir.st_dev == curdir.st_dev &&
+				rootdir.st_ino == curdir.st_ino);
+		if (isroot || chdir("..") == -1) {
+			rv = 0;
+			break;
+		}
+	}
+	fchdir(cwd);
+	return rv;
 }
 
 static
@@ -462,11 +489,11 @@ void enter_project_dir()
 	}
 
 	if (project_type && !strcmp(project_type, "guess")) {
-		if (isdir(".git"))
+		if (check_parents(".git"))
 			project_type = "git";
-		else if (!disable_hg && isdir(".hg"))
+		else if (!disable_hg && check_parents(".hg"))
 			project_type = "hg";
-		else if (!disable_bzr && isdir(".bzr"))
+		else if (!disable_bzr && check_parents(".bzr"))
 			project_type = "bzr";
 		else
 			project_type = "default";
