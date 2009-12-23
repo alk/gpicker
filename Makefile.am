@@ -6,7 +6,7 @@ gpicker_SOURCES = main.c scorer.c filtration.c vector.c xmalloc.c \
 gpicker_LDADD = @gtk2_LIBS@ @gthread_LIBS@
 AM_CFLAGS = -DPKGDATADIR=\"$(pkgdatadir)\" @gtk2_CFLAGS@ @gthread_CFLAGS@
 
-dist_pkgdata_DATA=gpicker.glade gpicker.el gpicker.vim
+dist_pkgdata_DATA=gpicker.el gpicker.vim
 dist_bin_SCRIPTS=fasteri
 
 if HAVE_CHECK
