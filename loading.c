@@ -154,7 +154,7 @@ gpointer do_read_filenames_async(gpointer _dummy)
 
 void read_filenames_with_main_loop(int fd)
 {
-	GMainLoop *loop = g_main_loop_new(g_main_context_get_thread_default(), FALSE);
+	GMainLoop *loop = g_main_loop_new(0, FALSE);
 	async_loading_loop = loop;
 
 	current_fd = fd;
