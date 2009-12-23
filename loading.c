@@ -184,6 +184,7 @@ void read_filenames_abort(void)
 
 void read_filenames_from_mlocate_db(int fd)
 {
+#ifdef DARWIN
 	static char read_buffer[65536];
 
 	timing_t start;
@@ -249,4 +250,5 @@ void read_filenames_from_mlocate_db(int fd)
 		_quicksort_top(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
 		finish_timing(start, "initial qsort");
 	}
+#endif
 }
