@@ -335,7 +335,9 @@ void setup_filenames(void)
 	if (read_stdin)
 		pipe = fileno(stdin);
 	else if (!project_type || !strcmp(project_type, "default"))
-		pipe = my_popen("find . -type f -print0",
+		pipe = my_popen("find . '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*'"
+				" -a '!' -wholename '*.svn/*' -a '!' -wholename '*.bzr/*'"
+				" -a '!' -wholename '*CVS/*' -type f -print0",
 				&pid);
 	else if (!strcmp(project_type, "git"))
 		pipe = my_popen("git ls-files --exclude-standard -c -o -z", &pid);
