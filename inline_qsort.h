@@ -100,7 +100,7 @@ typedef struct
 typedef int (*qsort_cmp_fn)(const void *, const void *); 
 
 static inline
-void _quicksort (void *const pbase, size_t total_elems, size_t size, qsort_cmp_fn cmp, void *const limit)
+void _quicksort_top (void *const pbase, size_t total_elems, size_t size, qsort_cmp_fn cmp, void *const limit)
 {
   char *base_ptr = (char *) pbase;
 
@@ -276,7 +276,7 @@ void _quicksort (void *const pbase, size_t total_elems, size_t size, qsort_cmp_f
 #undef qsort_min
 
 static inline
-void _quicksort (void *const pbase, size_t total_elems, size_t size, __compar_fn_t cmp)
+void _quicksort (void *const pbase, size_t total_elems, size_t size, qsort_cmp_fn cmp)
 {
 	_quicksort_top(pbase, total_elems, size, cmp, (void *)(~0));
 }
