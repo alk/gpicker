@@ -14,10 +14,16 @@ echo "Regression tests will not be built"
 ])
 AM_CONDITIONAL([HAVE_CHECK], [test x$HAVE_CHECK = xyes])
 
+AC_DEFINE([FIND_INVOCATION], ["find . '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*']dnl
+[ -a '!' -wholename '*.svn/*' -a '!' -wholename '*.bzr/*']dnl
+[ -a '!' -wholename '*CVS/*' -type f -print0"], [Command line to fetch list of files])
+
 uname_res=`uname -s`
 if test "x$uname_res" = "xDarwin"; then
   AC_MSG_NOTICE([Darwin detected. Assuming OSX and not cross-compiling.])
   export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/Library/Frameworks/Glib.framework/Resources/dev/lib/pkgconfig:/Library/Frameworks/Cairo.framework/Resources/dev/lib/pkgconfig:/Library/Frameworks/Gtk.framework/Resources/dev/lib/pkgconfig
+  dnl find in older OSX versions do not support -wholename
+  AC_DEFINE([FIND_INVOCATION], ["find . -type f -print0"], [Command line to fetch list of files])
 fi
 
 PKG_CHECK_MODULES([gtk2], [gtk+-2.0 >= 2.8])
