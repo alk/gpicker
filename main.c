@@ -29,6 +29,14 @@
 #include "config.h"
 #include <assert.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+
+#import <Cocoa/Cocoa.h>
+#include <Carbon/Carbon.h>
+#include <gdk/gdkquartz.h>
+
+#endif
+
 #include "xmalloc.h"
 #include "scorer.h"
 #include "filtration.h"
@@ -617,10 +625,10 @@ int main(int argc, char **argv)
 	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, 0);
 
 #if defined(__APPLE__) && defined(__MACH__)
-	// Call AppleScript to raise gpicker window
-	// gpicker binary should be placed somewhere in
-	//     gpicker.app/Contents/MacOS
-	system("osascript -e \"tell application \\\"gpicker\\\" to activate\" &");
+	NSWindow *nswin = gdk_quartz_window_get_nswindow(GTK_WIDGET(top_window)->window);
+	[nswin center];
+
+	[NSApp activateIgnoringOtherApps:YES];
 #endif
 
 	finish_timing(tstart, "setup_data");
