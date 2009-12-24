@@ -20,7 +20,6 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
-#include <glade/glade.h>
 #include <sys/types.h>
 #include <signal.h>
 #include <sys/stat.h>
@@ -30,6 +29,14 @@
 #include "config.h"
 #include <assert.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+
+#import <Cocoa/Cocoa.h>
+#include <Carbon/Carbon.h>
+#include <gdk/gdkquartz.h>
+
+#endif
+
 #include "xmalloc.h"
 #include "scorer.h"
 #include "filtration.h"
@@ -38,7 +45,6 @@
 #include "inline_qsort.h"
 #include "loading.h"
 
-static GladeXML *glade_ui;
 static GtkWindow *top_window;
 static GtkEntry *name_entry;
 static GtkTreeView *tree_view;
@@ -337,7 +343,7 @@ void setup_filenames(void)
 	if (read_stdin)
 		pipe = fileno(stdin);
 	else if (!project_type || !strcmp(project_type, "default"))
-		pipe = my_popen("find '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*'"
+		pipe = my_popen("find . '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*'"
 				" -a '!' -wholename '*.svn/*' -a '!' -wholename '*.bzr/*'"
 				" -a '!' -wholename '*CVS/*' -type f -print0",
 				&pid);
@@ -569,6 +575,43 @@ void parse_options(int argc, char **argv)
 		enter_project_dir();
 }
 
+static
+void build_ui()
+{
+	GtkBox *vbox;
+	GtkScrolledWindow *scrolled_window;
+
+	top_window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
+	gtk_window_set_type_hint(top_window, GDK_WINDOW_TYPE_HINT_DIALOG);
+	gtk_window_set_title(top_window, "Loading filelist - gpicker");
+
+	vbox = GTK_BOX(gtk_vbox_new(FALSE, 3));
+	gtk_container_set_border_width(GTK_CONTAINER(vbox), 3);
+	gtk_container_add(GTK_CONTAINER(top_window), GTK_WIDGET(vbox));
+
+	name_entry = GTK_ENTRY(gtk_entry_new());
+	gtk_entry_set_width_chars(name_entry, 48);
+	gtk_entry_set_alignment(name_entry, 1.0);
+	gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(name_entry),
+			   FALSE, TRUE, 0);
+
+	scrolled_window = GTK_SCROLLED_WINDOW(gtk_scrolled_window_new(0, 0));
+	gtk_scrolled_window_set_policy(scrolled_window,
+				       GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(scrolled_window),
+			   TRUE, TRUE, 0);
+
+	tree_view = GTK_TREE_VIEW(gtk_tree_view_new());
+	gtk_tree_view_set_headers_visible(tree_view, FALSE);
+	gtk_widget_set_size_request(GTK_WIDGET(tree_view), 0, 240);
+	gtk_tree_view_set_enable_search(tree_view, FALSE);
+	//	gtk_tree_view_set_fixed_height_mode(tree_view, TRUE);
+	gtk_tree_view_set_show_expanders(tree_view, FALSE);
+	gtk_container_add(GTK_CONTAINER(scrolled_window), GTK_WIDGET(tree_view));
+
+	gtk_widget_show_all(GTK_WIDGET(top_window));
+}
+
 int main(int argc, char **argv)
 {
 	timing_t tstart = start_timing();
@@ -580,22 +623,13 @@ int main(int argc, char **argv)
 	finish_timing(tstart, "gtk initialization");
 	tstart = start_timing();
 
-	glade_ui = glade_xml_new(PKGDATADIR "/gpicker.glade", 0, 0);
+	build_ui();
 
-	finish_timing(tstart, "glade initialization");
+	finish_timing(tstart, "UI initialization");
 	tstart = start_timing();
-
-	top_window = GTK_WINDOW(glade_xml_get_widget(glade_ui, "top-window"));
-	tree_view = GTK_TREE_VIEW(glade_xml_get_widget(glade_ui, "treeview"));
-	name_entry = GTK_ENTRY(glade_xml_get_widget(glade_ui, "name-entry"));
-
-	finish_timing(tstart, "init2");
-	tstart = start_timing();
-
-	gtk_widget_realize(GTK_WIDGET(top_window));
-	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, gdk_cursor_new(GDK_WATCH));
 
 	gtk_widget_show_all(GTK_WIDGET(top_window));
+	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, gdk_cursor_new(GDK_WATCH));
 
 	while (gtk_events_pending())
 		gtk_main_iteration();
@@ -616,6 +650,13 @@ int main(int argc, char **argv)
 	}
 
 	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, 0);
+
+#if defined(__APPLE__) && defined(__MACH__)
+	NSWindow *nswin = gdk_quartz_window_get_nswindow(GTK_WIDGET(top_window)->window);
+	[nswin center];
+
+	[NSApp activateIgnoringOtherApps:YES];
+#endif
 
 	finish_timing(tstart, "setup_data");
 

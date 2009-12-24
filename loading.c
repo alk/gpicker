@@ -154,7 +154,7 @@ gpointer do_read_filenames_async(gpointer _dummy)
 
 void read_filenames_with_main_loop(int fd)
 {
-	GMainLoop *loop = g_main_loop_new(g_main_context_get_thread_default(), FALSE);
+	GMainLoop *loop = g_main_loop_new(0, FALSE);
 	async_loading_loop = loop;
 
 	current_fd = fd;
@@ -184,6 +184,7 @@ void read_filenames_abort(void)
 
 void read_filenames_from_mlocate_db(int fd)
 {
+#if !defined(__APPLE__) && !defined(__MACH__)
 	static char read_buffer[65536];
 
 	timing_t start;
@@ -249,4 +250,5 @@ void read_filenames_from_mlocate_db(int fd)
 		_quicksort_top(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
 		finish_timing(start, "initial qsort");
 	}
+#endif
 }
