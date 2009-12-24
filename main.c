@@ -635,6 +635,13 @@ int main(int argc, char **argv)
 	while (gtk_events_pending())
 		gtk_main_iteration();
 
+#if defined(__APPLE__) && defined(__MACH__)
+	NSWindow *nswin = gdk_quartz_window_get_nswindow(GTK_WIDGET(top_window)->window);
+	[nswin center];
+
+	[NSApp activateIgnoringOtherApps:YES];
+#endif
+
 	finish_timing(tstart, "initial show");
 	tstart = start_timing();
 
@@ -651,13 +658,6 @@ int main(int argc, char **argv)
 	}
 
 	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, 0);
-
-#if defined(__APPLE__) && defined(__MACH__)
-	NSWindow *nswin = gdk_quartz_window_get_nswindow(GTK_WIDGET(top_window)->window);
-	[nswin center];
-
-	[NSApp activateIgnoringOtherApps:YES];
-#endif
 
 	finish_timing(tstart, "setup_data");
 
