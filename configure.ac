@@ -32,14 +32,16 @@ fi
 AC_MSG_CHECKING([whether -m32 is required to link gtk])
 AC_LANG_CONFTEST(AC_LANG_CALL([],[gtk_main]))
 ac_func_search_save_LIBS=$LIBS
+ac_func_search_save_CFLAGS=$CFLAGS
 LIBS="$LIBS $gtk2_LIBS $glib2_LIBS $gthread_LIBS"
 AC_LINK_IFELSE([], [AC_MSG_RESULT([no])], [
   dnl link failed. Try -m32
-  LIBS="$LIBS -m32"
-  AC_LINK_IFELSE([], [gtk2_LIBS="$gtk2_LIBS -m32"],
+  CFLAGS=="-m32 $CFLAGS"
+  AC_LINK_IFELSE([], [gtk2_CFLAGS="-m32 $gtk2_CFLAGS"],
      [AC_MSG_ERROR([linking with gtk2 failed! Something is wrong.])])
   AC_MSG_RESULT([yes])
 ])
 LIBS=$ac_func_search_save_LIBS
+CFLAGS=$ac_func_search_save_CFLAGS
 
 AC_OUTPUT
