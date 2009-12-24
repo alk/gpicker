@@ -8,7 +8,8 @@ AM_CFLAGS = -DPKGDATADIR=\"$(pkgdatadir)\" @gtk2_CFLAGS@ @gthread_CFLAGS@
 AM_CPPFLAGS = @EXTRA_CPPFLAGS@
 
 dist_pkgdata_DATA=gpicker.el gpicker.vim
-dist_bin_SCRIPTS=fasteri
+#dist_bin_SCRIPTS=fasteri
+EXTRA_DIST=fasteri
 
 if HAVE_CHECK
 
