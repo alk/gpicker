@@ -36,7 +36,7 @@ ac_func_search_save_CFLAGS=$CFLAGS
 LIBS="$LIBS $gtk2_LIBS $glib2_LIBS $gthread_LIBS"
 AC_LINK_IFELSE([], [AC_MSG_RESULT([no])], [
   dnl link failed. Try -m32
-  CFLAGS=="-m32 $CFLAGS"
+  CFLAGS="-m32 $CFLAGS"
   AC_LINK_IFELSE([], [gtk2_CFLAGS="-m32 $gtk2_CFLAGS"],
      [AC_MSG_ERROR([linking with gtk2 failed! Something is wrong.])])
   AC_MSG_RESULT([yes])
