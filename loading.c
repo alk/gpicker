@@ -184,7 +184,7 @@ void read_filenames_abort(void)
 
 void read_filenames_from_mlocate_db(int fd)
 {
-#ifdef DARWIN
+#if !defined(__APPLE__) && !defined(__MACH__)
 	static char read_buffer[65536];
 
 	timing_t start;
