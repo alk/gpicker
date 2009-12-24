@@ -343,12 +343,20 @@ void setup_filenames(void)
 
 	if (read_stdin)
 		pipe = fileno(stdin);
-	else if (!project_type || !strcmp(project_type, "default"))
-		pipe = my_popen("find . '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*'"
+	else if (!project_type || !strcmp(project_type, "default")) {
+		char *find_command = getenv("GPICKER_FIND");
+		if (!find_command)
+			find_command =
+#if defined(__APPLE__) && defined(__MACH__)
+                                // older OSX find doesn't support -wholename
+				"find . -type f -print0";
+#elsif
+				"find . '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*'"
 				" -a '!' -wholename '*.svn/*' -a '!' -wholename '*.bzr/*'"
-				" -a '!' -wholename '*CVS/*' -type f -print0",
-				&pid);
-	else if (!strcmp(project_type, "git"))
+				" -a '!' -wholename '*CVS/*' -type f -print0";
+#endif
+		pipe = my_popen(find_command, &pid);
+	} else if (!strcmp(project_type, "git"))
 		pipe = my_popen("git ls-files --exclude-standard -c -o -z .", &pid);
 	else if (!strcmp(project_type, "hg"))
 		pipe = my_popen("hg locate -0 --include .", &pid);
