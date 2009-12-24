@@ -616,6 +616,13 @@ int main(int argc, char **argv)
 
 	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, 0);
 
+#ifdef DARWIN
+	// Call AppleScript to raise gpicker window
+	// gpicker binary should be placed somewhere in
+	//     gpicker.app/Contents/MacOS
+	system("osascript -e \"tell application \\\"gpicker\\\" to activate\" &");
+#endif
+
 	finish_timing(tstart, "setup_data");
 
 	if (!program_exited)
