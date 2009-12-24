@@ -21,6 +21,7 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 #include <sys/types.h>
+#include <dirent.h>
 #include <signal.h>
 #include <sys/stat.h>
 #include <unistd.h>
