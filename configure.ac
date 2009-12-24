@@ -25,7 +25,7 @@ PKG_CHECK_MODULES([glib2], [glib-2.0 >= 2.14])
 PKG_CHECK_MODULES([gthread], [gthread-2.0])
 
 if test "x$uname_res" = "xDarwin"; then
-  gtk2_CFLAGS="$gtk2_CFLAGS -xobjective-c"
+  AM_CPPFLAGS=-xobjective-c
   gtk2_LIBS="$gtk2_LIBS -framework Cocoa"
 fi
 
