@@ -591,7 +591,6 @@ void build_ui()
 	gtk_container_add(GTK_CONTAINER(top_window), GTK_WIDGET(vbox));
 
 	name_entry = GTK_ENTRY(gtk_entry_new());
-	gtk_entry_set_width_chars(name_entry, 48);
 	gtk_entry_set_alignment(name_entry, 1.0);
 	gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(name_entry),
 			   FALSE, TRUE, 0);
@@ -604,7 +603,11 @@ void build_ui()
 
 	tree_view = GTK_TREE_VIEW(gtk_tree_view_new());
 	gtk_tree_view_set_headers_visible(tree_view, FALSE);
-	gtk_widget_set_size_request(GTK_WIDGET(tree_view), 0, 240);
+
+	GdkScreen *screen = gdk_display_get_default_screen(gdk_display_get_default());
+	unsigned display_height = gdk_screen_get_height(screen);
+	unsigned display_width = gdk_screen_get_width(screen);
+	gtk_widget_set_size_request(GTK_WIDGET(tree_view), display_width/2, display_height/2);
 	gtk_tree_view_set_enable_search(tree_view, FALSE);
 	gtk_tree_view_set_fixed_height_mode(tree_view, TRUE);
 	gtk_tree_view_set_show_expanders(tree_view, FALSE);
