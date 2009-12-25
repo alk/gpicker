@@ -606,7 +606,7 @@ void build_ui()
 	gtk_tree_view_set_headers_visible(tree_view, FALSE);
 	gtk_widget_set_size_request(GTK_WIDGET(tree_view), 0, 240);
 	gtk_tree_view_set_enable_search(tree_view, FALSE);
-	//	gtk_tree_view_set_fixed_height_mode(tree_view, TRUE);
+	gtk_tree_view_set_fixed_height_mode(tree_view, TRUE);
 	gtk_tree_view_set_show_expanders(tree_view, FALSE);
 	gtk_container_add(GTK_CONTAINER(scrolled_window), GTK_WIDGET(tree_view));
 
