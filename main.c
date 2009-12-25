@@ -632,8 +632,11 @@ int main(int argc, char **argv)
 	gtk_widget_show_all(GTK_WIDGET(top_window));
 	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, gdk_cursor_new(GDK_WATCH));
 
+#if defined(__APPLE__)
+	// OSX may benefit from this too, but I cannot test it yet.
 	while (gtk_events_pending())
 		gtk_main_iteration();
+#endif
 
 #if defined(__APPLE__) && defined(__MACH__)
 	NSWindow *nswin = gdk_quartz_window_get_nswindow(GTK_WIDGET(top_window)->window);
