@@ -40,7 +40,7 @@ int filter_filename(struct filename *name,
 		    unsigned *ematch)
 {
 	const struct simple_filter_state *state = _state;
-	unsigned patlen = state->prep->pat_length;
+	unsigned patlen = state->prep ? state->prep->pat_length : 0;
 	unsigned match[patlen];
 	const char *string = name->p + name->dirlength;
 	int score = score_string_prepared(string, &state->query, state->prep, strlen(string), match);
