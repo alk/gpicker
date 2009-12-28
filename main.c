@@ -681,6 +681,8 @@ int main(int argc, char **argv)
 
 	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, 0);
 
+	gtk_widget_grab_focus(GTK_WIDGET(name_entry));
+
 	finish_timing(tstart, "setup_data");
 
 	if (!program_exited)
