@@ -1,3 +1,4 @@
+/configure.ac
 *.o
 .deps
 /GPATH
