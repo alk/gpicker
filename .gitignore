@@ -1,4 +1,5 @@
 /configure.ac
+/ChangeLog
 *.o
 .deps
 /GPATH
