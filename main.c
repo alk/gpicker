@@ -577,6 +577,22 @@ void parse_options(int argc, char **argv)
 }
 
 static
+void get_monitor_dimensions(unsigned *width, unsigned *height)
+{
+	GdkScreen *screen = gdk_display_get_default_screen(gdk_display_get_default());
+	int i = gdk_screen_get_n_monitors(screen);
+	unsigned w = INT_MAX, h = INT_MAX;
+	while (--i >= 0) {
+		GdkRectangle r;
+		gdk_screen_get_monitor_geometry(screen, i, &r);
+		w = (w > r.width) ? r.width : w;
+		h = (h > r.height) ? r.height : h;
+	}
+	*width = w;
+	*height = h;
+}
+
+static
 void build_ui()
 {
 	GtkBox *vbox;
@@ -604,10 +620,10 @@ void build_ui()
 	tree_view = GTK_TREE_VIEW(gtk_tree_view_new());
 	gtk_tree_view_set_headers_visible(tree_view, FALSE);
 
-	GdkScreen *screen = gdk_display_get_default_screen(gdk_display_get_default());
-	unsigned display_height = gdk_screen_get_height(screen);
-	unsigned display_width = gdk_screen_get_width(screen);
+	unsigned display_width, display_height;
+	get_monitor_dimensions(&display_width, &display_height);
 	gtk_widget_set_size_request(GTK_WIDGET(tree_view), display_width/2, display_height/2);
+
 	gtk_tree_view_set_enable_search(tree_view, FALSE);
 	gtk_tree_view_set_fixed_height_mode(tree_view, TRUE);
 	gtk_tree_view_set_show_expanders(tree_view, FALSE);
