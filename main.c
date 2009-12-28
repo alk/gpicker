@@ -54,6 +54,7 @@ static GtkListStore *list_store;
 struct vector filtered = {.eltsize = sizeof(struct filter_result)};
 
 static char *init_filter;
+static gboolean show_version;
 static gboolean multiselect;
 static char *project_type;
 static char *project_dir;
@@ -437,6 +438,7 @@ void setup_signals(void)
 
 static
 GOptionEntry entries[] = {
+	{"version", 0, 0, G_OPTION_ARG_NONE, &show_version, "show version", 0},
 	{"project-type", 't', 0, G_OPTION_ARG_STRING, &project_type, "respect ignored files for given kind of VCS (default, git, bzr, hg, guess)", 0},
 	{"disable-bzr", 0, 0, G_OPTION_ARG_NONE, &disable_bzr, "disable autodetection of Bazaar project type", 0},
 	{"disable-hg", 0, 0, G_OPTION_ARG_NONE, &disable_hg, "disable autodetection of Mercurial project type", 0},
@@ -546,6 +548,10 @@ void parse_options(int argc, char **argv)
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
 		fprintf(stderr, "option parsing failed: %s\n", error->message);
 		exit(1);
+	}
+	if (show_version) {
+		fprintf(stdout, "%s %s\n", PACKAGE_NAME, VERSION);
+		exit(0);
 	}
 	if (argc < 2) {
 		fprintf(stderr, "I need a project path\n");
