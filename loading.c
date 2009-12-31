@@ -29,8 +29,6 @@
 #include <assert.h>
 #include <arpa/inet.h> // for ntohl
 
-#include <glib.h>
-
 #include "timing.h"
 #include "filtration.h"
 #include "xmalloc.h"
@@ -47,7 +45,7 @@ int gpicker_bytes_readen;
 int gpicker_load_stdin_too;
 
 static volatile
-gboolean reading_aborted;
+int reading_aborted;
 
 static
 void add_filename(char *p, int dirlength)
@@ -139,7 +137,7 @@ void read_filenames(int fd)
 
 void read_filenames_abort(void)
 {
-	reading_aborted = TRUE;
+	reading_aborted = 1;
 }
 
 void read_filenames_from_mlocate_db(int fd)
