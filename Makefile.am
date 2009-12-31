@@ -5,7 +5,7 @@ gpicker_SOURCES = main.c scorer.c filtration.c vector.c xmalloc.c \
  loading.h loading.c \
  filtration.h vector.h scorer.h xmalloc.h timing.h inline_qsort.h
 gpicker_LDADD = @gtk2_LIBS@ @gthread_LIBS@
-AM_CFLAGS = -DPKGDATADIR=\"$(pkgdatadir)\" @gtk2_CFLAGS@ @gthread_CFLAGS@
+AM_CFLAGS = @gtk2_CFLAGS@ @gthread_CFLAGS@
 AM_CPPFLAGS = @EXTRA_CPPFLAGS@
 
 EXTRA_DIST=fasteri gpicker.el gpicker.vim IDEAS CodingStyle README.osx
