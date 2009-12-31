@@ -64,6 +64,8 @@ static gboolean disable_hg;
 
 static
 gboolean program_exited;
+static
+gboolean gpicker_loading_completed;
 
 static void filter_tree_view_tail();
 
@@ -365,6 +367,7 @@ void setup_filenames(void)
 	gtk_widget_set_sensitive(GTK_WIDGET(tree_view), FALSE);
 
 	read_filenames_with_main_loop(pipe);
+	gpicker_loading_completed = TRUE;
 
 	gtk_widget_set_sensitive(GTK_WIDGET(tree_view), TRUE);
 	set_window_title();
@@ -447,6 +450,7 @@ GOptionEntry entries[] = {
 	{"eat-prefix", 0, 0, G_OPTION_ARG_STRING, &eat_prefix, "eat this prefix from names (./ is default)", 0},
 	{"multiselect", 0, 0, G_OPTION_ARG_NONE, &multiselect, "enable multiselect", 0},
 	{"init-filter", 0, 0, G_OPTION_ARG_STRING, &init_filter, "initial filter value", 0},
+	{"load-stdin-too", 0, 0, G_OPTION_ARG_NONE, &gpicker_load_stdin_too, "read additional filenames from stdin", 0},
 	{0}
 };
 

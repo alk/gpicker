@@ -43,8 +43,8 @@ char *dir_separator;
 char *eat_prefix = "./";
 
 int gpicker_bytes_readen;
+int gpicker_load_stdin_too;
 
-gboolean gpicker_loading_completed;
 static
 GMainLoop *async_loading_loop;
 static int current_fd = -1;
@@ -78,8 +78,13 @@ char *input_names(int fd, char **endp)
 			buf[0] = 0;
 			return buf;
 		}
-		if (readen == 0)
+		if (readen == 0) {
+			if (gpicker_load_stdin_too && fd != 0) {
+				fd = 0;
+				continue;
+			}
 			break;
+		}
 		else if (readen < 0) {
 			if (errno == EINTR)
 				continue;
@@ -138,10 +143,9 @@ void read_filenames(int fd)
 static
 gboolean idle_func(gpointer _dummy)
 {
-	if (async_loading_loop) {
-		gpicker_loading_completed = TRUE;
+	if (async_loading_loop)
 		g_main_loop_quit(async_loading_loop);
-	}
+	return FALSE;
 }
 
 static

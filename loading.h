@@ -12,7 +12,7 @@ extern char *dir_separator;
 extern char *eat_prefix;
 
 extern int gpicker_bytes_readen;
-extern gboolean gpicker_loading_completed;
+extern gboolean gpicker_load_stdin_too;
 
 void read_filenames(int fd);
 

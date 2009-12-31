@@ -51,16 +51,24 @@
 
 (defvar *gpicker-path* "gpicker")
 (defvar *gpicker-extra-args* '("--disable-bzr" ;; bzr builtin file listing is just too slow
+                               "--load-stdin-too"
                                "--multiselect"))
 (defvar *gpicker-project-dir* nil)
 (defvar *gpicker-project-type* "guess")
 (defvar *gpicker-errors-log* (expand-file-name "~/gpicker-errors.log"))
+(defvar *gpicker-buffers-list* (expand-file-name "~/gpicker-buffers-list"))
+
+(defun gpicker-delete-file (path)
+  (condition-case e
+      (delete-file path)
+    (error nil)))
 
 (defun gpicker-grab-stdout (&rest call-process-args)
   (with-temp-buffer
     (unwind-protect (let ((status (apply #'call-process
                                          (car call-process-args)
-                                         nil
+                                         (and (file-exists-p *gpicker-buffers-list*)
+                                              *gpicker-buffers-list*)
                                          (list (current-buffer) *gpicker-errors-log*)
                                          nil
                                          (cdr call-process-args))))
@@ -72,7 +80,9 @@
                           (goto-char (point-max))
                           (insert-file-contents *gpicker-errors-log*))
                         nil))
-      (delete-file *gpicker-errors-log*))))
+      (progn
+        (gpicker-delete-file *gpicker-errors-log*)
+        (gpicker-delete-file *gpicker-buffers-list*)))))
 
 (defun gpicker-pick (dir)
   (unless *gpicker-project-dir*
@@ -85,6 +95,15 @@
     (when (and at-point
                (> (string-bytes at-point) 0))
       (setq gpicker-args (list* "--init-filter" at-point gpicker-args)))
+    (with-temp-file *gpicker-buffers-list*
+      (let ((standard-output (current-buffer)))
+        (dolist (b (buffer-list))
+          (let ((name (buffer-name b)))
+            (unless (or (eq (current-buffer) b)
+                        (string= (substring name 0 1) " ")
+                        (buffer-file-name b))
+              (princ (buffer-name b))
+              (princ "\0"))))))
     (unwind-protect (let ((rv (apply #'gpicker-grab-stdout
                                      *gpicker-path*
                                      gpicker-args)))
