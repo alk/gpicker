@@ -19,6 +19,7 @@ config.status
 configure
 depcomp
 gpicker
+gpicker-simple
 install-sh
 missing
 scorer-tests

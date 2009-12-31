@@ -29,6 +29,7 @@
 #include <errno.h>
 #include "config.h"
 #include <assert.h>
+#include <libgen.h>
 
 #if defined(__APPLE__) && defined(__MACH__)
 
@@ -51,8 +52,6 @@ static GtkWindow *top_window;
 static GtkEntry *name_entry;
 static GtkTreeView *tree_view;
 static GtkListStore *list_store;
-
-struct vector filtered = {.eltsize = sizeof(struct filter_result)};
 
 static char *init_filter;
 static gboolean show_version;
@@ -667,8 +666,15 @@ void build_ui()
 	gtk_widget_show_all(GTK_WIDGET(top_window));
 }
 
+extern
+int simple_main(int, char **);
+
 int main(int argc, char **argv)
 {
+	char *gpicker = basename(xstrdup(argv[0]));
+	if (!strcmp(gpicker, "gpicker-simple"))
+		return simple_main(argc, argv);
+
 	timing_t tstart = start_timing();
 
 	g_thread_init(0);

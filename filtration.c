@@ -25,6 +25,7 @@
 #include "vector.h"
 #include "timing.h"
 #include "refcounted_str.h"
+#include "xmalloc.h"
 
 struct simple_filter_state {
 	struct scorer_query query;
@@ -32,6 +33,8 @@ struct simple_filter_state {
 };
 
 char filter_dir_separator = '/';
+
+struct vector filtered = {.eltsize = sizeof(struct filter_result)};
 
 static
 int filter_filename(struct filename *name,
@@ -137,7 +140,7 @@ void *prepare_filter(const char *filter, filter_func *func, filter_destructor *d
 		*destructor = destroy_filter_with_dir;
 		*func = filter_filename_with_dir;
 		struct split_pattern *pat = malloc(sizeof(struct split_pattern));
-		pat->basename = strdup(last_slash+1);
+		pat->basename = xstrdup(last_slash+1);
 		pat->dirname = g_strndup(filter, last_slash-filter);
 		return pat;
 	}
@@ -322,6 +325,14 @@ put_pattern:
 	return 0;
 }
 
+void filter_files_sync(char *pattern)
+{
+	do_filter_files(pattern);
+
+	vector_clear(&filtered);
+	vector_splice_into(&partial_filtered, &filtered);
+}
+
 void filter_files(char *pattern, void (*callback)(char *))
 {
 #ifndef NO_PARALLEL_FILTRATION
@@ -336,11 +347,7 @@ void filter_files(char *pattern, void (*callback)(char *))
 	g_cond_broadcast(ft_filtation_cond);
 	g_mutex_unlock(ft_mutex);
 #else
-	do_filter_files(pattern);
-
-	vector_clear(&filtered);
-	vector_splice_into(&partial_filtered, &filtered);
-
+	filter_files_sync(pattern);
 	callback(pattern);
 #endif
 }

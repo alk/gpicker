@@ -13,7 +13,6 @@ void vector_clear(struct vector *v);
 struct vector *vector_splice_into(struct vector *src, struct vector *dst);
 
 struct vector files_vector;
-struct vector filtered;
 
 #define nfiles (files_vector.used)
 #define files ((struct filename *)(files_vector.buffer))
