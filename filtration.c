@@ -18,14 +18,24 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <glib.h>
+
+#ifndef NO_CONFIG
 #include "config.h"
+#endif
+#ifdef WITH_GUI
+#include <glib.h>
+#endif
+
 #include "inline_qsort.h"
 #include "filtration.h"
 #include "vector.h"
 #include "timing.h"
 #include "refcounted_str.h"
 #include "xmalloc.h"
+
+#ifndef WITH_GUI
+#define NO_PARALLEL_FILTRATION
+#endif
 
 struct simple_filter_state {
 	struct scorer_query query;
@@ -35,6 +45,15 @@ struct simple_filter_state {
 char filter_dir_separator = '/';
 
 struct vector filtered = {.eltsize = sizeof(struct filter_result)};
+
+static
+char *cheap_strndup(const char *s, size_t n)
+{
+	char *rv = xmalloc(n+1);
+	rv[n] = 0;
+	strncpy(rv, s, n);
+	return rv;
+}
 
 static
 int filter_filename(struct filename *name,
@@ -141,7 +160,7 @@ void *prepare_filter(const char *filter, filter_func *func, filter_destructor *d
 		*func = filter_filename_with_dir;
 		struct split_pattern *pat = malloc(sizeof(struct split_pattern));
 		pat->basename = xstrdup(last_slash+1);
-		pat->dirname = g_strndup(filter, last_slash-filter);
+		pat->dirname = cheap_strndup(filter, last_slash-filter);
 		return pat;
 	}
 }
@@ -241,6 +260,8 @@ struct filter_result *do_filter_files(const char *pattern)
 	return results;
 }
 
+#ifdef WITH_GUI
+
 static struct refcounted_str *ft_pattern;
 static struct refcounted_str *ft_applied_pattern;
 static GMutex *ft_mutex;
@@ -324,6 +345,8 @@ put_pattern:
 
 	return 0;
 }
+
+#endif // WITH_GUI
 
 void filter_files_sync(char *pattern)
 {
