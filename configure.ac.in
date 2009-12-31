@@ -16,7 +16,7 @@ AM_CONDITIONAL([HAVE_CHECK], [test x$HAVE_CHECK = xyes])
 
 AC_DEFINE([FIND_INVOCATION], ["find . '!' -wholename '*.git/*' -a '!' -wholename '*.hg/*']dnl
 [ -a '!' -wholename '*.svn/*' -a '!' -wholename '*.bzr/*']dnl
-[ -a '!' -wholename '*CVS/*' -type f -print0"], [Command line to fetch list of files])
+[ -a '!' -wholename '*CVS/*' -type f -follow -print0"], [Command line to fetch list of files])
 
 uname_res=`uname -s`
 if test "x$uname_res" = "xDarwin"; then
