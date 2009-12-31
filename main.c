@@ -45,6 +45,7 @@
 #include "timing.h"
 #include "inline_qsort.h"
 #include "loading.h"
+#include "do_with_main_loop.h"
 
 static GtkWindow *top_window;
 static GtkEntry *name_entry;
@@ -66,6 +67,17 @@ static
 gboolean program_exited;
 static
 gboolean gpicker_loading_completed;
+static
+struct do_with_main_loop_process *loading_process;
+
+GPid child_pid;
+
+static
+void kill_child_pid(void)
+{
+	if (child_pid)
+		kill(child_pid, SIGINT);
+}
 
 static void filter_tree_view_tail();
 
@@ -197,9 +209,10 @@ static
 void exit_program(void)
 {
 	program_exited = TRUE;
-	if (!gpicker_loading_completed)
+	if (!gpicker_loading_completed) {
 		read_filenames_abort();
-	else
+		do_with_main_loop_quit(loading_process);
+	} else
 		gtk_main_quit();
 }
 
@@ -328,12 +341,13 @@ int my_popen(char *string, GPid *child_pid)
 }
 
 static
-void setup_filenames(void)
+gpointer setup_filenames_core(gpointer _dummy,
+			      struct do_with_main_loop_process *p)
 {
-	int pipe;
-	GPid pid = 0;
+	int pipe = -1;
 
 	if (project_type && !strcmp(project_type, "mlocate")) {
+		do_with_main_loop_init_complete(p);
 		int fd = open(project_dir, O_RDONLY);
 		if (fd < 0) {
 			perror("setup_filenames:open");
@@ -341,7 +355,7 @@ void setup_filenames(void)
 		}
 		read_filenames_from_mlocate_db(fd);
 		close(fd);
-		return;
+		return 0;
 	}
 
 	if (read_stdin)
@@ -350,31 +364,44 @@ void setup_filenames(void)
 		char *find_command = getenv("GPICKER_FIND");
 		if (!find_command)
 			find_command = FIND_INVOCATION;
-		pipe = my_popen(find_command, &pid);
+		pipe = my_popen(find_command, &child_pid);
 	} else if (!strcmp(project_type, "git"))
-		pipe = my_popen("git ls-files --exclude-standard -c -o -z .", &pid);
+		pipe = my_popen("git ls-files --exclude-standard -c -o -z .", &child_pid);
 	else if (!strcmp(project_type, "hg"))
-		pipe = my_popen("hg locate -0 --include .", &pid);
+		pipe = my_popen("hg locate -0 --include .", &child_pid);
 	else if (!strcmp(project_type, "bzr"))
-		pipe = my_popen("bzr ls -R --versioned --unknown --null", &pid);
+		pipe = my_popen("bzr ls -R --versioned --unknown --null", &child_pid);
+
+	do_with_main_loop_init_complete(p);
 
 	if (pipe < 0) {
 		perror("failed to spawn find");
 		exit(1);
 	}
 
+	read_filenames(pipe);
+
+	if (child_pid) {
+		kill(child_pid, SIGINT);
+		child_pid = 0;
+	}
+	close(pipe);
+
+	return 0;
+}
+
+static
+void setup_filenames(void)
+{
 	g_timeout_add(250, async_load_callback, 0);
 	gtk_widget_set_sensitive(GTK_WIDGET(tree_view), FALSE);
 
-	read_filenames_with_main_loop(pipe);
+	do_with_main_loop((do_with_main_loop_fn)setup_filenames_core, 0, &loading_process);
 	gpicker_loading_completed = TRUE;
+	do_with_main_loop_close(loading_process);
 
 	gtk_widget_set_sensitive(GTK_WIDGET(tree_view), TRUE);
 	set_window_title();
-
-	if (pid)
-		kill(pid, SIGINT);
-	close(pipe);
 }
 
 static
@@ -649,6 +676,8 @@ int main(int argc, char **argv)
 	g_thread_init(0);
 	parse_options(argc, argv);
 	gtk_init(0, 0);
+
+	atexit(kill_child_pid);
 
 	finish_timing(tstart, "gtk initialization");
 	tstart = start_timing();

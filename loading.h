@@ -15,10 +15,7 @@ extern int gpicker_bytes_readen;
 extern gboolean gpicker_load_stdin_too;
 
 void read_filenames(int fd);
-
-void read_filenames_with_main_loop(int fd);
 void read_filenames_abort(void);
-
 void read_filenames_from_mlocate_db(int fd);
 
 #endif

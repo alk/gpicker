@@ -18,6 +18,7 @@
 #define _GNU_SOURCE
 
 #include <string.h>
+#include <stdio.h>
 #include <sys/errno.h>
 #include <sys/types.h>
 #include <sys/mman.h>
@@ -44,10 +45,6 @@ char *eat_prefix = "./";
 
 int gpicker_bytes_readen;
 int gpicker_load_stdin_too;
-
-static
-GMainLoop *async_loading_loop;
-static int current_fd = -1;
 
 static volatile
 gboolean reading_aborted;
@@ -140,50 +137,9 @@ void read_filenames(int fd)
 		       (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
 }
 
-static
-gboolean idle_func(gpointer _dummy)
-{
-	if (async_loading_loop)
-		g_main_loop_quit(async_loading_loop);
-	return FALSE;
-}
-
-static
-gpointer do_read_filenames_async(gpointer _dummy)
-{
-	read_filenames(current_fd);
-	g_idle_add(idle_func, 0);
-	return 0;
-}
-
-void read_filenames_with_main_loop(int fd)
-{
-	GMainLoop *loop = g_main_loop_new(0, FALSE);
-	async_loading_loop = loop;
-
-	current_fd = fd;
-
-	void *rv = g_thread_create_full(do_read_filenames_async,
-					0,
-					0,
-					FALSE,
-					TRUE,
-					G_THREAD_PRIORITY_NORMAL,
-					0);
-
-	g_main_loop_run(loop);
-	g_main_loop_unref(loop);
-
-	current_fd = -1;
-	async_loading_loop = 0;
-}
-
 void read_filenames_abort(void)
 {
 	reading_aborted = TRUE;
-	if (async_loading_loop) {
-		g_main_loop_quit(async_loading_loop);
-	}
 }
 
 void read_filenames_from_mlocate_db(int fd)
