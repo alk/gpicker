@@ -242,8 +242,6 @@ void print_selection(void)
 {
 	GtkTreeSelection *sel = gtk_tree_view_get_selection(tree_view);
 	GList *list;
-	GtkTreeIter iter;
-	gint idx;
 
 	list = gtk_tree_selection_get_selected_rows(sel, 0);
 	if (!list)
