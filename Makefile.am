@@ -11,6 +11,9 @@ AM_CPPFLAGS = @EXTRA_CPPFLAGS@
 
 EXTRA_DIST=fasteri gpicker.el gpicker.vim IDEAS CodingStyle README.osx Makefile.simple
 
+# _SOURCES is only to fool automake not to search for gpicker-simple.c
+# Real build rule is simple 'ln'
+gpicker_simple_SOURCES = simple_main.c
 gpicker-simple: gpicker
 	ln -f gpicker gpicker-simple
 
