@@ -10,6 +10,8 @@ struct filename {
 
 char filter_dir_separator;
 
+int dont_sort;
+
 // vector of struct filter_result
 struct vector filtered;
 

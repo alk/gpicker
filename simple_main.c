@@ -41,7 +41,7 @@ void process_separator(char **separator_place, char *name, char *def)
 static
 void usage(void)
 {
-	fputs("usage: gpicker-simple [-h] [-d dir-seperator] [-n name-separator] pattern\n", stderr);
+	fputs("usage: gpicker-simple [-hS] [-d dir-seperator] [-n name-separator] pattern\n", stderr);
 	exit(0);
 }
 
@@ -52,11 +52,14 @@ void parse_options(int argc, char **argv)
 
 	name_separator = "\n";
 
-	while ((ch = getopt(argc, argv, "hn:d:")) > 0) {
+	while ((ch = getopt(argc, argv, "hn:d:S")) > 0) {
 		switch (ch) {
 		case 'h':
 		case '?':
 			usage();
+		case 'S':
+			dont_sort = 1;
+			break;
 		case 'n':
 			name_separator = optarg;
 			break;

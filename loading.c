@@ -131,8 +131,9 @@ void read_filenames(int fd)
 		add_filename(start, dirlength);
 	}
 
-	_quicksort_top(files, nfiles, sizeof(struct filename),
-		       (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
+	if (!dont_sort)
+		_quicksort_top(files, nfiles, sizeof(struct filename),
+			       (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
 }
 
 void read_filenames_abort(void)
@@ -203,7 +204,7 @@ void read_filenames_from_mlocate_db(int fd)
 		strings = p + 0x11;
 	}
 
-	{
+	if (!dont_sort) {
 		start = start_timing();
 		_quicksort_top(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
 		finish_timing(start, "initial qsort");

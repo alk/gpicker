@@ -43,6 +43,7 @@ struct simple_filter_state {
 };
 
 char filter_dir_separator = '/';
+int dont_sort;
 
 struct vector filtered = {.eltsize = sizeof(struct filter_result)};
 
@@ -251,7 +252,8 @@ struct filter_result *do_filter_files(const char *pattern)
 
 	start = start_timing();
 	results = (struct filter_result *)partial_filtered.buffer;
-	_quicksort_top(results, partial_filtered.used, sizeof(struct filter_result), (int (*)(const void *, const void *))compare_filter_result, results + FILTER_LIMIT);
+	if (!dont_sort)
+		_quicksort_top(results, partial_filtered.used, sizeof(struct filter_result), (int (*)(const void *, const void *))compare_filter_result, results + FILTER_LIMIT);
 	finish_timing(start, "qsort");
 
 	finish_timing(whole, "whole do_filter_files");
