@@ -50,6 +50,7 @@
 (require 'ffap)
 
 (defvar *gpicker-path* "gpicker")
+(defvar *gpicker-simple-path* nil)
 (defvar *gpicker-extra-args* '("--disable-bzr" ;; bzr builtin file listing is just too slow
                                "--load-stdin-too"
                                "--multiselect"))
@@ -62,6 +63,10 @@
   (condition-case e
       (delete-file path)
     (error nil)))
+
+(defun gpicker-get-simple-path ()
+  (or *gpicker-simple-path*
+      (concat *gpicker-path* "-simple")))
 
 (defun gpicker-grab-stdout (&rest call-process-args)
   (with-temp-buffer
@@ -152,5 +157,36 @@
 (defun gpicker-find-file-other-frame ()
   (interactive)
   (gpicker-do-find #'find-file-other-frame))
+
+;;; ido integration
+
+(defvar *gpicker-hook-ido* t
+  "*Use gpicker for filtering ido results")
+
+(defadvice ido-set-matches-1 (around gpicker-ido-set-matches-1 activate)
+  "Choose between the regular ido-set-matches-1 and gpicker-my-ido-match"
+  (if *gpicker-hook-ido*
+      (setq ad-return-value (gpicker-my-ido-match ido-text (ad-get-arg 0)))
+    ad-do-it))
+
+(defun gpicker-ido-toggle ()
+  "Toggle gpicker-ido integration"
+  (interactive)
+  (setq *gpicker-hook-ido* (not *gpicker-hook-ido*)))
+
+(defun gpicker-my-ido-match (str items)
+  (setq items (reverse items))
+  (with-temp-file *gpicker-buffers-list*
+    (let ((standard-output (current-buffer)))
+      (dolist (item items)
+        (princ item)
+        (princ "\0"))))
+  (let ((args (list "-n\\0" str)))
+    (when (or ido-rotate (string= str ""))
+      (push "-S" args)) ;; dont_sort
+    (let ((out (apply #'gpicker-grab-stdout
+                      (gpicker-get-simple-path)
+                      args)))
+      (split-string out "\0" t))))
 
 (provide 'gpicker)
