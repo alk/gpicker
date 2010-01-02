@@ -1,0 +1,91 @@
+gpicker NEWS -- history of user-visible changes.
+Sat, 02 Jan 2010 20:57:04 +0200
+
+* gpicker.el doesn't hide gpicker-errors.log from user and unlinks it after gpicker
+  invocation
+
+* gpicker became even more faster. As part of performance work gpicker
+  has been changed to truncate result list to 1000 items. Any gpicker
+  optimizations would be invisible without that, as gtk+ list model
+  isn't too fast. After more than year of using this feature I've
+  never seen that truncated end of list. So it works great in
+  practice.
+
+* gpicker now filters & sorts results in separate thread. It
+  gracefully abort current filtration when pattern is changed before
+  filtration completion. This made UI extremely responsive, especially
+  on huge filesets. I've tested this on list of my entire filesystem
+  with more than 1M of files.
+
+* Sergey Avseyev contributed VIM integration
+
+* Sergey Avseyev contributed project types support for mercurial and
+  bazaar. New project type 'guess' automagically detects project
+  type.
+
+* gpicker now has (out-of-tree) integrations with netbeans (by Sergey
+  Avseyev) and gedit (by Yura Tolstik). See
+  http://github.com/avsej/gpicker-netbeans and
+  http://github.com/yltsrc/gedit-gpicker respectively.
+
+* gpicker can now read names from stdin which enables it's use for
+  choosing not just files, but anything.
+  http://github.com/alk/supermegadoc uses this feature to pick index
+  items (functions, types, ...) from various documentation systems.
+
+* gpicker now has command-line options that control directory
+  separator and name separator, as well as few other options that
+  control name list loading.
+
+  Directory separator option along with ability to read arbitrary
+  names from stdin abstracts gpicker's notion of directory path to
+  more general notion of namespace. In particular supermegadoc package
+  uses erlang module name as namespace when navigating erlang
+  documentation.
+
+  Current version supports only single-char separators, yet. And
+  there's special support for specifying new-line, zero byte, etc.
+
+* gpicker (and it's Emacs integration) now supports multi-select. It
+  is now possible to open .c and .h with one gpicker invocation. Emacs
+  integration will automatically use split frame in that case.
+
+* it's now possible to specify initial pattern. Emacs integration now
+  uses word around point as initial pattern.
+
+* gpicker file-list loading has been moved into separate thread, which
+  allows gpicker UI to be responsive during file-list loading. You can
+  now exit gpicker at any time.
+
+* gpicker now supports building with (now obsolete) gtk-osx
+  2.14. http://gtk-osx.org doesn't ship that gtk bundle anymore. But
+  (possibly with minor ./configure.ac tweaks) it should build with
+  latest gtk versions on OSX.
+
+* it is now possible to control 'find' command line that gpicker uses to
+  load list of files via GPICKER_FIND environment variable.
+
+* WARNING: gpicker.el is not automagically installed anymore. Be
+  careful to manually copy gpicker.el into correct place when
+  installing or upgrading.
+
+* (broken) Emacs integration now includes names of non-file backed
+  buffers to select list and allows switching to them.
+
+* gpicker now includes gpicker-simple which is non-interactive version
+  of gpicker. Most importantly, gpicker-simple doesn't have any build
+  dependencies.
+
+  In default './configure' build gpicker-simple is just a hardlink to
+  gpicker. But see Makefile.simple if you want to build
+  dependency-free gpicker-simple. I think it even should be possible
+  to build gpicker-simple on windows, with few tweaks (like providing
+  missing getopt(3) implementation).
+
+* gpicker.el now has (largely broken) ido integration (that depends
+  only on gpicker-simple).
+
+* gpicker now has initial support for matching UTF-8
+  names. It is case-sensitive outside of ASCII though.
+
+* gpicker now has manpages
