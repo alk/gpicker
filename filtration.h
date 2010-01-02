@@ -25,6 +25,8 @@ int compare_filter_result(struct filter_result *a, struct filter_result *b);
 void filter_files_sync(char *pattern);
 void filter_files(char *pattern, void (*callback)(char *));
 
+int obtain_match(const char *pattern, int files_index, unsigned *match);
+
 #define FILTER_LIMIT 1000
 
 #endif

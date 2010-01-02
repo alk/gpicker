@@ -40,7 +40,6 @@
 #endif
 
 #include "xmalloc.h"
-#include "scorer.h"
 #include "filtration.h"
 #include "vector.h"
 #include "timing.h"
@@ -153,10 +152,6 @@ void cell_data_func(GtkTreeViewColumn *col,
 		const char *pattern = applied_pattern;
 		int patlen = strlen(pattern);
 		unsigned match[patlen];
-		void *filter;
-		filter_func filter_func;
-		filter_destructor destructor = 0;
-		struct filter_result result;
 		int passes;
 		int i;
 
@@ -164,10 +159,7 @@ void cell_data_func(GtkTreeViewColumn *col,
 			     "text", text,
 			     NULL);
 
-		filter = prepare_filter(pattern, &filter_func, &destructor);
-		passes = filter_func(files + index, filter, &result, match);
-		if (destructor)
-			destructor(filter);
+		passes = obtain_match(pattern, index, match);
 		if (!passes)
 			return;
 

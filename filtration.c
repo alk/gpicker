@@ -262,6 +262,23 @@ struct filter_result *do_filter_files(const char *pattern)
 	return results;
 }
 
+int obtain_match(const char *pattern, int files_index, unsigned *match)
+{
+	void *filter;
+	filter_func filter_func;
+	filter_destructor destructor = 0;
+	struct filter_result result;
+	int passes;
+
+	filter = prepare_filter(pattern, &filter_func, &destructor);
+	passes = filter_func(files + files_index, filter, &result, match);
+	if (destructor)
+		destructor(filter);
+
+	return passes;
+}
+
+
 #ifdef WITH_GUI
 
 static struct refcounted_str *ft_pattern;

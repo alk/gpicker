@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "loading.h"
 #include "filtration.h"
@@ -13,6 +14,8 @@
 
 static
 char *pattern;
+static
+int output_match;
 
 static
 void process_separator(char **separator_place, char *name, char *def)
@@ -52,7 +55,7 @@ void parse_options(int argc, char **argv)
 
 	name_separator = "\n";
 
-	while ((ch = getopt(argc, argv, "hn:d:S")) > 0) {
+	while ((ch = getopt(argc, argv, "hn:d:SM")) > 0) {
 		switch (ch) {
 		case 'h':
 		case '?':
@@ -65,6 +68,9 @@ void parse_options(int argc, char **argv)
 			break;
 		case 'd':
 			dir_separator = optarg;
+			break;
+		case 'M':
+			output_match = 1;
 		}
 	}
 
@@ -96,9 +102,28 @@ int simple_main(int argc, char **argv)
 	struct filter_result *results = (struct filter_result *)filtered.buffer;
 	int i, len = filtered.used;
 
+	int patlen = strlen(pattern);
+	unsigned match[patlen];
+
 	for (i = 0; i < len; i++) {
-		fputs(files[results[i].index].p, stdout);
+		int index = results[i].index;
+		fputs(files[index].p, stdout);
 		fputc(name_separator[0], stdout);
+
+		if (output_match) {
+			int passes = obtain_match(pattern, index, match);
+			assert(passes);
+
+			unsigned current_pos = 0;
+			int k;
+			for (k = 0; k < patlen; k++) {
+				for (; current_pos < match[k]; current_pos++)
+					fputc(' ', stdout);
+				fputc('^', stdout);
+				current_pos++;
+			}
+			fputc(name_separator[0], stdout);
+		}
 	}
 
 	return 0;
