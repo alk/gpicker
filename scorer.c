@@ -49,7 +49,7 @@ void ____empty_printf(char *format, ...)
 static inline
 int delimiter_p(char ch)
 {
-	return (ch == '.' || ch == '_' || ch == '/');
+	return (ch == '.' || ch == '_' || ch == '/' || ch == '*');
 }
 
 static inline
