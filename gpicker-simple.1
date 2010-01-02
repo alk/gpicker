@@ -1,0 +1,68 @@
+.TH GPICKER-SIMPLE 1 "January 2, 2010"
+.SH NAME
+gpicker-simple \- non-gui version of gpicker high-performance
+(file)name chooser
+.SH SYNOPSIS
+.B gpicker-simple
+.RI [ options ]
+.RI pattern
+.br
+.SH DESCRIPTION
+This manual page documents briefly the
+.B gpicker-simple
+program.
+.PP
+You can use
+.B gpicker-simple
+to filter & sort arbitrary list of names by piping that list of names
+to it's stdin. Filtered & sorted list is printed on standard output.
+.PP
+When passed
+.B \-M
+option
+.B gpicker-simple
+also outputs match positions. In this mode each line of output is
+followed by line with
+.B ^
+characters right under matched positions.
+.br
+.SH OPTIONS
+This program follows the usual GNU command line syntax. A summary of options
+is included below.
+.TP
+.B \-h
+Show help options and quit
+.TP
+.B \-S
+Don't sort filtered list
+.TP
+.B \-M
+Output match positions
+.TP
+.B \-n name\-separator
+Sets separator of filenames from stdin (\\0 is default).
+Interprets \\0 as zero byte, \\n as new line, \\r as carriage return, \\t
+as tab character.
+.TP
+.B \-d dir\-separator
+Sets separator of directory names from stdin (/ is default).
+Interprets \\0 as zero byte, \\n as new line, \\r as carriage return, \\t
+as tab character.
+.br
+.SH LICENSE
+The gpicker is distributed under the GPLv3 license. See COPYING file
+that comes with it. On Debian systems,
+the complete text of the GNU General Public License
+can be found in /usr/share/common-licenses/GPL-3.
+.br
+.SH SEE ALSO
+gpicker(1)
+.PP
+The README file that comes with gpicker.
+.SH AUTHOR
+The gpicker was written by Aliaksey Kandratsenka
+.B <alk@tut.by>
+with useful input and patches from folks in Ruby department of Altoros
+Systems, Inc.
+.B http://www.altoros.com/ruby_on_rails.html
+.br

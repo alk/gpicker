@@ -9,6 +9,8 @@ gpicker_LDADD = @gtk2_LIBS@ @gthread_LIBS@
 AM_CFLAGS = @gtk2_CFLAGS@ @gthread_CFLAGS@
 AM_CPPFLAGS = @EXTRA_CPPFLAGS@
 
+man_MANS = gpicker.1 gpicker-simple.1
+
 EXTRA_DIST=fasteri gpicker.el gpicker.vim IDEAS CodingStyle README.osx Makefile.simple
 
 # _SOURCES is only to fool automake not to search for gpicker-simple.c

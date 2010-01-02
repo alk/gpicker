@@ -1,0 +1,112 @@
+.TH GPICKER 1 "January 2, 2010"
+.SH NAME
+gpicker \- fast (file)name chooser
+.SH SYNOPSIS
+.B gpicker
+.RI [ options ]
+.RI directory-path
+.br
+.SH DESCRIPTION
+This manual page documents briefly the
+.B gpicker
+program.
+.PP
+.B gpicker
+is a gtk+ program that allows you to quickly and conveniently pick
+file in a (possibly very large) project. You type significant letters
+of file name (typically from the start of words) and gpicker provides
+you with a list of files you most likely mean to pick. The program
+filters and orders project's list of files in real-time as you
+type. It prints selected item (or items in multi-select mode) on
+standard output.
+.PP
+You can use also
+.B gpicker
+to filter & sort arbitrary list of names by piping that list of names
+to it's stdin and passing '-' instead of path.
+.PP
+.B gpicker
+has a concept of project type which allows it to skip files that are
+ignored by project's version control system. Default project type
+invokes find to gather list of files. You can change find command line
+via
+.B GPICKER_FIND
+environment variable.
+.PP
+.B gpicker
+is typically used from programmer's editors or IDEs. VIM and Emacs
+integration is included in
+.B gpicker
+package.
+There's also NetBeans plugin at
+.B http://github.com/avsej/gpicker-netbeans
+and gedit plugin at
+.B http://github.com/yltsrc/gedit-gpicker
+.PP
+.B gpicker
+can be used from other programs as well.
+.B http://github.com/alk/supermegadoc
+uses gpicker to pick names from documentation system index.
+.br
+.SH OPTIONS
+This program follows the usual GNU command line syntax. A summary of options
+is included below.
+.TP
+.B \-h, \-\-help
+Show help options and quit
+.TP
+.B \-\-version
+show version
+.TP
+.B \-t, \-\-project\-type
+respect ignored files for given kind of VCS (default, git, bzr, hg,
+guess)
+.TP
+.B \-\-disable\-bzr
+disable autodetection of Bazaar project type
+.TP
+.B \-\-disable\-hg
+disable autodetection of Mercurial project type
+.TP
+.B \-n, \-\-name\-separator
+Set separator of filenames from stdin (\\0 is default).
+Interprets \\0 as zero byte, \\n as new line, \\r as carriage return, \\t
+as tab character.
+.TP
+.B \-d, \-\-dir\-separator
+Sets separator of directory names from stdin (/ is default).
+Interprets \\0 as zero byte, \\n as new line, \\r as carriage return, \\t
+as tab character.
+.TP
+.B \-\-eat\-prefix
+eat this prefix from names (./ is default)
+.TP
+.B \-m, \-\-multiselect
+enable multiselect
+.TP
+.B \-i, \-\-init\-filter
+initial filter value
+.TP
+.B \-\-load\-stdin\-too
+read additional filenames from stdin
+.TP
+.B \-\-display=DISPLAY
+X display to use
+.br
+.SH LICENSE
+The gpicker is distributed under the GPLv3 license. See COPYING file
+that comes with it. On Debian systems,
+the complete text of the GNU General Public License
+can be found in /usr/share/common-licenses/GPL-3.
+.br
+.SH SEE ALSO
+gpicker-simple(1)
+.PP
+The README file that comes with gpicker.
+.SH AUTHOR
+The gpicker was written by Aliaksey Kandratsenka
+.B <alk@tut.by>
+with useful input and patches from folks in Ruby department of Altoros
+Systems, Inc.
+.B http://www.altoros.com/ruby_on_rails.html
+.br
