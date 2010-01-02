@@ -25,6 +25,7 @@
 #include <inttypes.h>
 
 #include "scorer.h"
+#include "compiler.h"
 
 #define PROPER_WORD_START 0x100000
 #define WILD_WORD_START 0x201
@@ -132,7 +133,7 @@ int score_string_prepared_inline(const unsigned pat_length,
 	};
 
 	const char *pattern = query->pattern;
-	struct position state[string_length][__builtin_constant_p(pat_length) ? pat_length : MAX_PAT_LENGTH];
+	struct position state[string_length][__BUILTIN_CONSTANT(pat_length) ? pat_length : MAX_PAT_LENGTH];
 	char *start_of_pattern_word = prepared_pattern->start_of_pattern_word;
 	char *translated_pattern = prepared_pattern->translated_pattern;
 	unsigned i;
@@ -208,7 +209,7 @@ int score_string_prepared_inline(const unsigned pat_length,
 			state[i][0].amount = 0;
 			state[i][0].score = i > 0 ? state[i-1][0].score : -1;
 		}
-		if (!__builtin_constant_p(pat_length) || pat_length > 1) {
+		if (!__BUILTIN_CONSTANT(pat_length) || pat_length > 1) {
 			max_k = i+1;
 			max_k = (max_k > pat_length) ? pat_length : max_k;
 			for (k=1; k<max_k; k++) {

@@ -31,6 +31,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "compiler.h"
+
 /* Byte-wise swap two items of size SIZE. */
 #define SWAP(a, b, size)						      \
   do									      \
@@ -205,7 +207,7 @@ void _quicksort_top (void *const pbase, size_t total_elems, size_t size, qsort_c
               hi = right_ptr;
             }
 
-	  if (__builtin_expect((STACK_NOT_EMPTY != 0), 1) && (void *)lo > limit)
+	  if (__EXPECT((STACK_NOT_EMPTY != 0), 1) && (void *)lo > limit)
             POP (lo, hi);
         }
     }
