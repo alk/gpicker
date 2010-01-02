@@ -269,8 +269,15 @@ int score_string_prepared_inline(const unsigned pat_length,
 						break;
 				assert(k<string_length);
 			}
+		match_again:
 			match[i] = k;
 			t -= state[k][i].amount;
+			if (state[k][i].amount == ADJACENT) {
+				assert(i>0);
+				k--;
+				i--;
+				goto match_again;
+			}
 		}
 		assert(t == 0);
 	}
