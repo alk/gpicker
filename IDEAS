@@ -38,4 +38,4 @@ DONE - (low-tech speedup alternative) limit number of items in listview with rea
 
 - I need good support for git submodules
 
-- support utf8 (probably with special extra arg if usage of wchar is much slower) 
+- support utf8 (DONE, but case-sensitive outside ASCII)
