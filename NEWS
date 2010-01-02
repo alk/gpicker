@@ -46,6 +46,18 @@ Sat, 02 Jan 2010 20:57:04 +0200
   Current version supports only single-char separators, yet. And
   there's special support for specifying new-line, zero byte, etc.
 
+* it is now possible to enter directory/namespace filtration pattern
+  after base pattern. Use '\', which is a special 'backwards'
+  directory separator for such cases. 'bar\foo' is now equivalent to
+  'foo/bar'. There are no command-line option for changing that
+  separator.
+
+  General use case for that feature is that you often start filtering
+  by base name and look at what you get. You use directory name
+  filtration usually only after you look at base name filter
+  results. This feature helps you to avoid extra key presses precisely
+  for that case. Just type '\' and start typing pattern for directory.
+
 * gpicker (and it's Emacs integration) now supports multi-select. It
   is now possible to open .c and .h with one gpicker invocation. Emacs
   integration will automatically use split frame in that case.

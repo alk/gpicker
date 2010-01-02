@@ -145,25 +145,41 @@ void destroy_filter_with_dir(void *data)
 	free(pattern);
 }
 
+static
+void *prepare_dir_filter(char *basename, char *dirname, filter_func *func, filter_destructor *destructor)
+{
+	*destructor = destroy_filter_with_dir;
+	*func = filter_filename_with_dir;
+	struct split_pattern *pat = malloc(sizeof(struct split_pattern));
+	pat->basename = basename; //xstrdup(last_slash+1);
+	pat->dirname = dirname; // cheap_strndup(filter, last_slash-filter);
+	return pat;
+}
+
 void *prepare_filter(const char *filter, filter_func *func, filter_destructor *destructor)
 {
-	char *last_slash = strrchr(filter, filter_dir_separator);
-	if (!last_slash) {
-		*destructor = (filter_destructor)free_simple_filter_state;
-		*func = filter_filename;
-		struct simple_filter_state *state = malloc(sizeof(struct simple_filter_state));
-		state->query.pattern = filter;
-		state->query.right_match = 0;
-		state->prep = prepare_pattern(&state->query);
-		return state;
-	} else {
-		*destructor = destroy_filter_with_dir;
-		*func = filter_filename_with_dir;
-		struct split_pattern *pat = malloc(sizeof(struct split_pattern));
-		pat->basename = xstrdup(last_slash+1);
-		pat->dirname = cheap_strndup(filter, last_slash-filter);
-		return pat;
+	char *last_slash = strrchr(filter, '\\');
+	if (last_slash) {
+		// in this case basename comes first
+		return prepare_dir_filter(cheap_strndup(filter, last_slash-filter),
+					  xstrdup(last_slash+1),
+					  func, destructor);
 	}
+
+	last_slash = strrchr(filter, filter_dir_separator);
+	if (last_slash) {
+		return prepare_dir_filter(xstrdup(last_slash+1),
+					  cheap_strndup(filter, last_slash-filter),
+					  func, destructor);
+	}
+
+	*destructor = (filter_destructor)free_simple_filter_state;
+	*func = filter_filename;
+	struct simple_filter_state *state = malloc(sizeof(struct simple_filter_state));
+	state->query.pattern = filter;
+	state->query.right_match = 0;
+	state->prep = prepare_pattern(&state->query);
+	return state;
 }
 
 int compare_filter_result(struct filter_result *a, struct filter_result *b)
