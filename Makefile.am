@@ -1,6 +1,6 @@
 bin_PROGRAMS = gpicker gpicker-simple
 gpicker_SOURCES = main.c scorer.c filtration.c vector.c xmalloc.c \
- refcounted_str.c refcounted_str.h \
+ refcounted_str.c refcounted_str.h compiler.h \
  do_with_main_loop.h do_with_main_loop.c \
  loading.h loading.c \
  simple_main.c \
