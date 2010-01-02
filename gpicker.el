@@ -131,10 +131,13 @@
   (setq *gpicker-project-type* "guess")
   (setq *gpicker-project-dir* (expand-file-name dir)))
 
-(defun gpicker-call-find-function (find-function file)
-  (setq file (expand-file-name file *gpicker-project-dir*))
-  (let ((revert-without-query (list (regexp-quote (abbreviate-file-name file)))))
-    (funcall find-function file)))
+(defun gpicker-call-find-function (find-function original-file)
+  (let ((file (expand-file-name file *gpicker-project-dir*)))
+    (if (file-exists-p file)
+        (let ((revert-without-query (list (regexp-quote (abbreviate-file-name file)))))
+          (funcall find-function file))
+    (let ((b (get-buffer original-file)))
+      (and b (display-buffer b))))))
 
 (defun gpicker-do-find (find-function)
   (let ((files (gpicker-pick *gpicker-project-dir*)))

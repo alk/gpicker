@@ -69,8 +69,8 @@ Sat, 02 Jan 2010 20:57:04 +0200
   careful to manually copy gpicker.el into correct place when
   installing or upgrading.
 
-* (broken) Emacs integration now includes names of non-file backed
-  buffers to select list and allows switching to them.
+* Emacs integration now includes names of non-file backed buffers to
+  select list and allows switching to them.
 
 * gpicker now includes gpicker-simple which is non-interactive version
   of gpicker. Most importantly, gpicker-simple doesn't have any build
