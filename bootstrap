@@ -1,9 +1,5 @@
 #!/bin/sh
 
-version=`git describe | sed -e 's/-/./g' -e 's/^v//'`
-
-sed s/@@VERSION@@/$version/g <configure.ac.in >configure.ac
-
 git log >ChangeLog
 
 aclocal && autoconf && autoheader && automake -a
