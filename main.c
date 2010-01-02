@@ -469,11 +469,11 @@ GOptionEntry entries[] = {
 	{"project-type", 't', 0, G_OPTION_ARG_STRING, &project_type, "respect ignored files for given kind of VCS (default, git, bzr, hg, guess)", 0},
 	{"disable-bzr", 0, 0, G_OPTION_ARG_NONE, &disable_bzr, "disable autodetection of Bazaar project type", 0},
 	{"disable-hg", 0, 0, G_OPTION_ARG_NONE, &disable_hg, "disable autodetection of Mercurial project type", 0},
-	{"name-separator", 0, 0, G_OPTION_ARG_STRING, &name_separator, "separator of filenames from stdin (\\0 is default)", 0},
-	{"dir-separator", 0, 0, G_OPTION_ARG_STRING, &dir_separator, "separator of directory names from stdin (/ is default)", 0},
+	{"name-separator", 'n', 0, G_OPTION_ARG_STRING, &name_separator, "separator of filenames from stdin (\\0 is default)", 0},
+	{"dir-separator", 'd', 0, G_OPTION_ARG_STRING, &dir_separator, "separator of directory names from stdin (/ is default)", 0},
 	{"eat-prefix", 0, 0, G_OPTION_ARG_STRING, &eat_prefix, "eat this prefix from names (./ is default)", 0},
-	{"multiselect", 0, 0, G_OPTION_ARG_NONE, &multiselect, "enable multiselect", 0},
-	{"init-filter", 0, 0, G_OPTION_ARG_STRING, &init_filter, "initial filter value", 0},
+	{"multiselect", 'm', 0, G_OPTION_ARG_NONE, &multiselect, "enable multiselect", 0},
+	{"init-filter", 'i', 0, G_OPTION_ARG_STRING, &init_filter, "initial filter value", 0},
 	{"load-stdin-too", 0, 0, G_OPTION_ARG_NONE, &gpicker_load_stdin_too, "read additional filenames from stdin", 0},
 	{0}
 };
