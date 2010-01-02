@@ -27,6 +27,8 @@
 #include "scorer.h"
 #include "compiler.h"
 
+int scorer_utf8_mode = 1;
+
 #define PROPER_WORD_START 0x100000
 #define WILD_WORD_START 0x201
 #define ADJACENT 0x400
@@ -234,6 +236,15 @@ int score_string_prepared_inline(const unsigned pat_length,
 					amount = start_of_pattern_word[k] ? PROPER_WORD_START : WILD_WORD_START;
 				this_score = prev_score + amount;
 
+				// if current pattern byte is
+				// continuation of utf8 sequence, then
+				// it must match adjacently.
+				if (__EXPECT(scorer_utf8_mode, 1) && __EXPECT(utf8_continuation_p(pat_ch), 0)) {
+					if (state[i-1][k-1].this_score < 0)
+						goto cont;
+					this_score = 0; // force win
+							// of next candidate
+				}
 				if (state[i-1][k-1].this_score >= 0 && !delimiter_p(pat_ch)) {
 					int candidate = state[i-1][k-1].this_score + ADJACENT;
 					if (candidate > this_score)
@@ -271,6 +282,10 @@ int score_string_prepared_inline(const unsigned pat_length,
 			}
 		match_again:
 			match[i] = k;
+			if (__EXPECT(scorer_utf8_mode, 1)
+			    && __EXPECT(utf8_continuation_p(pattern[i]), 0)) {
+				match[i] = SCORER_MATCH_NONE;
+			}
 			t -= state[k][i].amount;
 			if (state[k][i].amount == ADJACENT) {
 				assert(i>0);

@@ -1,5 +1,6 @@
 #ifndef SCORER_H
 #define SCORER_H
+#include <limits.h>
 
 struct scorer_query {
 	const char *pattern;
@@ -21,6 +22,17 @@ struct prepared_pattern {
 	char first_chars[8];
 	char fc_count;
 };
+
+extern int scorer_utf8_mode; // on by default
+
+static inline
+int utf8_continuation_p(char p)
+{
+	return (p & 0xc0) == 0x80;
+}
+
+// signals that there are no highlight-able match in this pattern position
+#define SCORER_MATCH_NONE UINT_MAX
 
 int score_string(const char *string, const struct scorer_query *query, const unsigned string_length, unsigned* match);
 int score_simple_string(const char *string, const char *pattern, unsigned *match);

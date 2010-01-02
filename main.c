@@ -165,9 +165,13 @@ void cell_data_func(GtkTreeViewColumn *col,
 
 		PangoAttrList *list = pango_attr_list_new();
 		for (i=0;i<patlen;i++) {
+			unsigned match_pos = match[i];
+			if (match_pos == SCORER_MATCH_NONE)
+				continue;
 			PangoAttribute *attr = pango_attr_weight_new(PANGO_WEIGHT_BOLD);
-			attr->start_index = match[i];
-			attr->end_index = match[i]+1;
+			attr->start_index = match_pos;
+			while (utf8_continuation_p(text[++match_pos]));
+			attr->end_index = match_pos;
 			pango_attr_list_insert(list, attr);
 		}
 

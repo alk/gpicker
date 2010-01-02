@@ -107,7 +107,8 @@ int simple_main(int argc, char **argv)
 
 	for (i = 0; i < len; i++) {
 		int index = results[i].index;
-		fputs(files[index].p, stdout);
+		char *p = files[index].p;
+		fputs(p, stdout);
 		fputc(name_separator[0], stdout);
 
 		if (output_match) {
@@ -117,8 +118,11 @@ int simple_main(int argc, char **argv)
 			unsigned current_pos = 0;
 			int k;
 			for (k = 0; k < patlen; k++) {
+				if (match[k] == SCORER_MATCH_NONE)
+					continue;
 				for (; current_pos < match[k]; current_pos++)
-					fputc(' ', stdout);
+					if (!utf8_continuation_p(p[current_pos]))
+						fputc(' ', stdout);
 				fputc('^', stdout);
 				current_pos++;
 			}
