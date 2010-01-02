@@ -54,4 +54,7 @@ AC_LINK_IFELSE([], [AC_MSG_RESULT([no])], [
 LIBS=$ac_func_search_save_LIBS
 CFLAGS=$ac_func_search_save_CFLAGS
 
+AC_SUBST([DATE], [`LANG=C date -R`])
+
+AC_CONFIG_FILES(debian/changelog)
 AC_OUTPUT

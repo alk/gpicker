@@ -1,0 +1,5 @@
+gpicker (@VERSION@-1) unstable; urgency=low
+
+  * Packaged @VERSION@
+
+ -- Aliaksey Kandratsenka <alk@tut.by>  @DATE@

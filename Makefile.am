@@ -11,7 +11,7 @@ AM_CPPFLAGS = @EXTRA_CPPFLAGS@
 
 man_MANS = gpicker.1 gpicker-simple.1
 
-EXTRA_DIST = gpicker.el gpicker.vim IDEAS CodingStyle README.osx Makefile.simple
+EXTRA_DIST = gpicker.el gpicker.vim IDEAS CodingStyle README.osx Makefile.simple debian
 
 # _SOURCES is only to fool automake not to search for gpicker-simple.c
 # Real build rule is simple 'ln'

@@ -1,5 +1,6 @@
 /configure.ac
 /ChangeLog
+/debian/changelog
 *.o
 .deps
 /GPATH

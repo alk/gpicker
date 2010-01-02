@@ -1,0 +1,23 @@
+Source: gpicker
+Section: utils
+Priority: extra
+Maintainer: Aliaksey Kandratsenka <alk@tut.by>
+Build-Depends: debhelper (>= 5), automake, pkg-config, libgtk2.0-dev (>= 2.8), libglib2.0-dev (>= 2.14)
+Standards-Version: 3.8.1
+Homepage: http://savannah.nongnu.org/projects/gpicker
+
+Package: gpicker
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, lsb-base (>= 3.2)
+Description: fast (file)name chooser
+ gpicker is a gtk+ program that allows you to quickly and conveniently
+ pick file in a (possibly very large) project. You type significant
+ letters of file name (typically from the start of words) and gpicker
+ provides you with a list of files you most likely mean to pick. The
+ program filters and orders project's list of files in real-time as
+ you type. It prints selected item (or items in multi-select mode) on
+ standard output.
+ .
+ You can use also gpicker to filter & sort arbitrary list of names by
+ piping that list of names to it's stdin and passing '-' instead of
+ path.
