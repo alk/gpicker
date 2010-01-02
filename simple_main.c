@@ -44,7 +44,7 @@ void process_separator(char **separator_place, char *name, char *def)
 static
 void usage(void)
 {
-	fputs("usage: gpicker-simple [-hS] [-d dir-seperator] [-n name-separator] pattern\n", stderr);
+	fputs("usage: gpicker-simple [-hSM] [-d dir-seperator] [-n name-separator] pattern\n", stderr);
 	exit(0);
 }
 
