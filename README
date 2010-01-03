@@ -1,4 +1,4 @@
-gpicker version 1.0
+gpicker version 1.1.3
 
 Copying and distribution of this file, with or without modification,
 are permitted in any medium without royalty provided the copyright
@@ -14,32 +14,166 @@ of file name (typically from the start of words) and gpicker provides
 you with a list of files you most likely mean to pick. The program
 filters and orders project's list of files in real-time as you type.
 
+To place 'correct' matches on top gpicker uses sophisticated scoring
+heuristics. This scoring heuristic tries to capture user's intention
+and effectively 'un-abbreviate' pattern, rather than simply order
+results by edit distance. Scoring is implemented by efficient dynamic
+programming algorithm which makes filtration and ordering very
+fast. The scoring details are described below.
+
 It was inspired by class finding facility of IntelliJ IDEA and
 'Command-T' feature of TextMate, but it's in many ways much better.
 It is language-agnostic and supports matching directory names too.
 Read on for details.
 
 It is usable as a standalone program, but it was created to be used by
-editors/IDEs. Currently only Emacs intergration is provided. See
-comments on top of gpicker.el for installation notes. This README
-describes general usage concepts.
+editors/IDEs. Emacs & VIM integration is provided. See comments on top
+of gpicker.{el,vim} for installation notes. This README describes
+general usage concepts.
 
-To place 'correct' matches on top gpicker uses sophisticated scoring
-heuristics. Scoring is implemented by efficient dynamic programming
-algorithm which makes filtration and ordering very fast. The scoring
-details are described below.
+There are also out-of-tree integrations for netbeans --
+http://github.com/avsej/gpicker-netbeans and gedit --
+http://github.com/yltsrc/gedit-gpicker.
 
+http://github.com/alk/supermegadoc uses gpicker to navigate/pick-from
+names in documentation system index.
+
+
+High-level description of gpicker's filtration/sorting approach
+---------------------------------------------------------------
+
+Main observation behind gpicker is what we use (or would like to use)
+when specifying target name in few key presses.  The answer is
+abbreviation of 'words' in that target name. For example, for
+abbreviating 'active_record' it is 'natural' to use 'ar' (first chars
+from each word), 'arec' or 'a-rec' (emphasizing 'r' as start of new
+word).  So sorting task is to order names in candidate list, so that
+the names for which pattern is best abbreviation are placed on top.
+
+Many 'smart' autocompleters focus on edit distance (Levenstein
+distance, for example), but really smart autocompleter should try to
+'un-abbreviate' pattern instead. Levenstein is good for spellchecking,
+but autocompletion is about trying to capture user's intention. And
+user abbreviates, not just omits random chars.
+
+Another notable feature of gpicker is separate treatment of path
+basename and dirname. Ordinary patterns filter only basenames. In many
+cases this is sufficient. But in some projects there are files with
+same names in different directories. Notable example is base.rb in
+Ruby on Rails sources.
+
+epsilon:~/src/altoros/rails# git ls-files | gpicker-simple base | head
+actionpack/lib/action_view/base.rb
+railties/lib/rails_generator/base.rb
+activemodel/lib/active_model/base.rb
+.. many other base.rb entries are skipped ...
+
+For such cases matching dirname of complete path is useful. gpicker
+does that in a smart way. Dirname pattern is used only to break ties
+between basename matches.
+
+epsilon:~/src/altoros/rails# git ls-files | gpicker-simple ac-reco/base
+activerecord/lib/active_record/base.rb
+activerecord/lib/active_record/connection_adapters/abstract/database_statements.rb
+
+Empty basename patterns can be used to browse list of files in some
+directory. For example 'are/con-ad/' can be used to see contents of
+vendor/rails/activerecord/lib/active_record/connection_adapters/.
+
+gpicker doesn't attempt to be too strict at filtering. Most effort in
+design of gpicker's internals was spent on sorting candidate entries,
+not eliminating them. The goal was to place 'correct' match on top, or
+at least on first page. How many results in total we get is
+irrelevant, if we can find what we need in first few results.
+
+
+gpicker-simple
+--------------
+
+gpicker is a Gtk+ program. In some cases and on some OSes this is
+inconvenient. So there's also gpicker-simple program that doesn't
+depend on glib and Gtk+.  In default './configure' build gpicker-simple
+is just a hardlink to gpicker. But see Makefile.simple if you want to
+build dependency-free gpicker-simple. I think it even should be
+possible to build gpicker-simple on windows, with few tweaks (like
+providing missing getopt(3) implementation).
+
+
+More details
+------------
+
+Based on gpicker's main idea I designed the following:
+
+* first, list of candidate names should be filtered so that only names
+  where all pattern characters match in correct order (increasing
+  position) remain
+
+* matches should generally be case-insensitive, though
+  camel-case-transitions should be handled as beginnings of words
+
+* each candidate name should be assigned some score based on how well
+  pattern abbreviates that name
+
+* candidate name list is sorted with descending score (with some
+  additional rules to break ties)
+
+The scoring system adds scores of all matches and is based on the
+following observations:
+
+* match on beginning of word is good and should be given some score. So
+  'a' and 'r' are good abbreviations for 'active_record' because they
+  match beginnings of words. While 'c' and 'e' (that match too) are not.
+
+* match on beginning of first word is even better (because we usually abbreviate
+  from first word). So 'a' is better abbreviation for 'active_record'
+  than 'r' (both match, but 'r' probably queries for something that
+  begins with 'r', like 'red').
+
+* patterns can have word separators too, to emphasize word start. So
+  'a-r', most probably, means: I want name with word that starts on
+  'a' and then has another word that starts on 'r'. Such emphasized
+  matches on beginnings of words should be rewarded more than 'wild'
+  matches on beginnings of words. So 'a-r' is better fit for
+  'active-record' than 'ar' (because 'ar' could mean 'arsenal').
+
+* adjacent matches are more important than non-adjacent matches. 'ar'
+  fits 'arsenal' well. And it even fits 'paragraph' more or less well
+  (substring match). While it doesn't fit 'alert' at all (but
+  matches).
+
+This set of rules encourages matches on beginnings of words and
+positions that are adjacent to previous matches. But what scores to
+assign in every case ? In particular, it's not clear what's relative
+order of scores for adjacent match versus 'wild' match on start of
+word. I decided that 'ar' should score more on 'arsenal', than on
+'active-record'. I've chosen adjacency score to be a bit less then
+doubled wild word beginning match score. Probably, to get this:
+
+arsenal:100800
+^^^
+active-record-simple:100402
+^      ^      ^
+arbiters:100400
+^^     ^
+active-records:100201
+^      ^     ^
+
+So the scoring system is:
+* 'proper' word beginning match is awarded 0x100000 points. This,
+obviously, includes match on beginning of first word
+* 'wild' word beginning match -- 0x201
+* and 0x400 is given for adjacent match
 
 Performance notes
 -----------------
 
 Don't judge gpicker's performance by first run. gpicker scans project
-for list of files on every start. This can take a while on first run. But
-subsequent runs will hit OS's directory entries cache and will
-start almost instantly.
+for list of files on every start. This can take a while on first
+run. But subsequent runs will hit OS's directory entries cache and
+will start almost instantly.
 
-Real-time filtration should be snappy on most, but largest
-projects. At least if your CPU is not very old.
+Real-time filtration should be snappy even on largest projects. At
+least if your CPU is not very old.
 
 
 Usage in examples
@@ -73,10 +207,6 @@ delimiter is considered start of the word. Delimiters '_' and '-' are
 interchangeable. So association_proxy.rb can be matched with 'a-pro'
 and with 'a_pro' (and with 'aPro' of course). That was done because
 '-' is easier to type.
-
-Empty basename patterns can be used to browse list of files in some
-directory. For example 'are/con-ad/' can be used to see contents of
-vendor/rails/activerecord/lib/active_record/connection_adapters/.
 
 
 Filtering & scoring details
