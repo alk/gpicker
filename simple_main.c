@@ -16,6 +16,8 @@ static
 char *pattern;
 static
 int output_match;
+static
+int output_scores;
 
 static
 void process_separator(char **separator_place, char *name, char *def)
@@ -44,7 +46,7 @@ void process_separator(char **separator_place, char *name, char *def)
 static
 void usage(void)
 {
-	fputs("usage: gpicker-simple [-hSM] [-d dir-seperator] [-n name-separator] pattern\n", stderr);
+	fputs("usage: gpicker-simple [-hSMx] [-d dir-seperator] [-n name-separator] pattern\n", stderr);
 	exit(0);
 }
 
@@ -55,7 +57,7 @@ void parse_options(int argc, char **argv)
 
 	name_separator = "\n";
 
-	while ((ch = getopt(argc, argv, "hn:d:SM")) > 0) {
+	while ((ch = getopt(argc, argv, "hn:d:SMx")) > 0) {
 		switch (ch) {
 		case 'h':
 		case '?':
@@ -71,6 +73,9 @@ void parse_options(int argc, char **argv)
 			break;
 		case 'M':
 			output_match = 1;
+			break;
+		case 'x':
+			output_scores = 1;
 		}
 	}
 
@@ -109,6 +114,13 @@ int simple_main(int argc, char **argv)
 		int index = results[i].index;
 		char *p = files[index].p;
 		fputs(p, stdout);
+		if (output_scores) {
+			struct filter_result *r = results + i;
+			if (r->dirscore)
+				printf(":%x:%x", r->score, r->dirscore);
+			else
+				printf(":%x", r->score);
+		}
 		fputc(name_separator[0], stdout);
 
 		if (output_match) {
