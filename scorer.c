@@ -134,7 +134,6 @@ int score_string_prepared_inline(const unsigned pat_length,
 		int amount;
 	};
 
-	const char *pattern = query->pattern;
 	struct position state[string_length][__BUILTIN_CONSTANT(pat_length) ? pat_length : MAX_PAT_LENGTH];
 	char *start_of_pattern_word = prepared_pattern->start_of_pattern_word;
 	char *translated_pattern = prepared_pattern->translated_pattern;
@@ -149,7 +148,7 @@ int score_string_prepared_inline(const unsigned pat_length,
 	if (string_length == 0)
 		return -1;
 
-	dprintf("scoring string '%.*s' for pattern '%s'\n", string_length, string, pattern);
+	dprintf("scoring string '%.*s' for pattern '%s'\n", string_length, string, query->pattern);
 
 #if 1
 	if (prepared_pattern->fc_count > 0) {
@@ -295,7 +294,7 @@ int score_string_prepared_inline(const unsigned pat_length,
 			if (translated_pattern[i] == '_')
 				match[i] = SCORER_MATCH_NONE;
 			if (__EXPECT(scorer_utf8_mode, 1)
-			    && __EXPECT(utf8_continuation_p(pattern[i]), 0)) {
+			    && __EXPECT(utf8_continuation_p(translated_pattern[i]), 0)) {
 				match[i] = SCORER_MATCH_NONE;
 			}
 			t -= state[k][i].amount;
