@@ -1,6 +1,9 @@
 gpicker NEWS -- history of user-visible changes.
 Sat, 02 Jan 2010 20:57:04 +0200
 
+version 2.0
+===========
+
 * gpicker.el doesn't hide gpicker-errors.log from user and unlinks it after gpicker
   invocation
 
