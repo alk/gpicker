@@ -73,8 +73,11 @@ END_TEST
 START_TEST(test_char_after_delimiter_handling)
 {
 	/* char right after delimiter must match start of word */
-	assert_scores(0x200400, "some_owo-word", "s-wo", M(0,4,9,10));
-	assert_scores(0x200400, "some_owoWord", "s-wo", M(0,4,8,9));
+	assert_scores(0x200400, "some.owo.word", "s.wo", M(0,4,9,10));
+	assert_scores(0x200400, "some.owoWord", "s.wo", M(0,4,8,9));
+
+	/* char right after delimiter must match start of word */
+	assert_scores(0x200400, "some-owoWord", "s-wo", M(0,SCORER_MATCH_NONE,8,9));
 }
 END_TEST
 

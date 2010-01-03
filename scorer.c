@@ -220,6 +220,13 @@ int score_string_prepared_inline(const unsigned pat_length,
 				char prev_pattern;
 				int amount;
 				int this_score;
+				prev_score = state[i-1][k-1].score;
+				if (pat_ch == '_') { // always match '_'
+					state[i][k].score = prev_score;
+					state[i][k].amount = 0;
+					state[i][k].this_score = prev_score;
+					continue;
+				}
 				if (ch != pat_ch) {
 				cont:
 					state[i][k].score = state[i-1][k].score;
@@ -227,13 +234,16 @@ int score_string_prepared_inline(const unsigned pat_length,
 					state[i][k].this_score = -1;
 					continue;
 				}
-				prev_score = state[i-1][k-1].score;
 				if (prev_score < 0)
 					goto cont;
 				amount = 0;
 				prev_pattern = translated_pattern[k-1];
 				if (at_word_start)
 					amount = start_of_pattern_word[k] ? PROPER_WORD_START : WILD_WORD_START;
+				// '_' demands proper word start after itself, and nothing less
+				if (prev_pattern == '_')
+					if (amount != PROPER_WORD_START)
+						goto cont;
 				this_score = prev_score + amount;
 
 				// if current pattern byte is
@@ -282,6 +292,8 @@ int score_string_prepared_inline(const unsigned pat_length,
 			}
 		match_again:
 			match[i] = k;
+			if (translated_pattern[i] == '_')
+				match[i] = SCORER_MATCH_NONE;
 			if (__EXPECT(scorer_utf8_mode, 1)
 			    && __EXPECT(utf8_continuation_p(pattern[i]), 0)) {
 				match[i] = SCORER_MATCH_NONE;
