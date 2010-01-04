@@ -671,7 +671,7 @@ void build_ui()
 #if !defined(__APPLE__) || !defined(__MACH__)
 	gtk_widget_realize(GTK_WIDGET(top_window));
 	// force our popup to be recent enough to display on top
-	GdkWindow *gdk_win = gtk_widget_get_window(GTK_WIDGET(top_window));
+	GdkWindow *gdk_win = GTK_WIDGET(top_window)->window;
 	gdk_x11_window_set_user_time(gdk_win, gdk_x11_get_server_time(gdk_win));
 #endif
 
