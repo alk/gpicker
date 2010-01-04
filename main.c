@@ -37,6 +37,10 @@
 #include <Carbon/Carbon.h>
 #include <gdk/gdkquartz.h>
 
+#else
+
+#include <gdk/gdkx.h>
+
 #endif
 
 #include "xmalloc.h"
@@ -662,6 +666,15 @@ void build_ui()
 	gtk_window_set_position(top_window, GTK_WIN_POS_CENTER);
 
 	gtk_widget_show_all(GTK_WIDGET(top_window));
+
+	// TODO: detect gdk_x11 at configure time instead of this hack
+#if !defined(__APPLE__) || !defined(__MACH__)
+	gtk_widget_realize(GTK_WIDGET(top_window));
+	// force our popup to be recent enough to display on top
+	GdkWindow *gdk_win = gtk_widget_get_window(GTK_WIDGET(top_window));
+	gdk_x11_window_set_user_time(gdk_win, gdk_x11_get_server_time(gdk_win));
+#endif
+
 	gtk_window_present(top_window);
 }
 
