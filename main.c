@@ -650,16 +650,19 @@ void build_ui()
 	tree_view = GTK_TREE_VIEW(gtk_tree_view_new());
 	gtk_tree_view_set_headers_visible(tree_view, FALSE);
 
-	unsigned display_width, display_height;
-	get_monitor_dimensions(&display_width, &display_height);
-	gtk_widget_set_size_request(GTK_WIDGET(tree_view), display_width/2, display_height/2);
-
 	gtk_tree_view_set_enable_search(tree_view, FALSE);
 	gtk_tree_view_set_fixed_height_mode(tree_view, TRUE);
 	gtk_tree_view_set_show_expanders(tree_view, FALSE);
 	gtk_container_add(GTK_CONTAINER(scrolled_window), GTK_WIDGET(tree_view));
 
+	unsigned display_width, display_height;
+	get_monitor_dimensions(&display_width, &display_height);
+	gtk_window_set_default_size(top_window, display_width/2, display_height/2);
+
+	gtk_window_set_position(top_window, GTK_WIN_POS_CENTER);
+
 	gtk_widget_show_all(GTK_WIDGET(top_window));
+	gtk_window_present(top_window);
 }
 
 extern
