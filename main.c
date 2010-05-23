@@ -39,7 +39,9 @@
 
 #else
 
+#ifdef WITH_GDK_X11
 #include <gdk/gdkx.h>
+#endif
 
 #endif
 
@@ -693,8 +695,7 @@ int main(int argc, char **argv)
 
 	gtk_widget_show_all(GTK_WIDGET(top_window));
 
-	// TODO: detect gdk_x11 at configure time instead of this hack
-#if !defined(__APPLE__) || !defined(__MACH__)
+#ifdef WITH_GDK_X11
 	gtk_widget_realize(GTK_WIDGET(top_window));
 	// force our popup to be recent enough to display on top
 	GdkWindow *gdk_win = GTK_WIDGET(top_window)->window;

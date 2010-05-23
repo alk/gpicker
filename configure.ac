@@ -54,6 +54,17 @@ AC_LINK_IFELSE([], [AC_MSG_RESULT([no])], [
 LIBS=$ac_func_search_save_LIBS
 CFLAGS=$ac_func_search_save_CFLAGS
 
+ac_func_search_save_LIBS=$LIBS
+ac_func_search_save_CFLAGS=$CFLAGS
+ac_func_search_save_CPPLAGS=$CPPFLAGS
+CFLAGS="$gtk2_CFLAGS $glib2_CFLAGS $gthread_CFLAGS $CFLAGS"
+CPPFLAGS="$gtk2_CFLAGS $glib2_CFLAGS $gthread_CFLAGS $CPPFLAGS"
+LIBS="$LIBS $gtk2_LIBS $glib2_LIBS $gthread_LIBS"
+AC_CHECK_HEADER([gdk/gdkx.h], [AC_DEFINE([WITH_GDK_X11], 1, [GDK wraps X11])])
+LIBS=$ac_func_search_save_LIBS
+CFLAGS=$ac_func_search_save_CFLAGS
+CPPFLAGS=$ac_func_search_save_CPPFLAGS
+
 AC_SUBST([DATE], [`LANG=C date -R`])
 
 AC_CONFIG_FILES(debian/changelog)
