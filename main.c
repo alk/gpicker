@@ -664,18 +664,6 @@ void build_ui()
 	gtk_window_set_default_size(top_window, display_width/2, display_height/2);
 
 	gtk_window_set_position(top_window, GTK_WIN_POS_CENTER);
-
-	gtk_widget_show_all(GTK_WIDGET(top_window));
-
-	// TODO: detect gdk_x11 at configure time instead of this hack
-#if !defined(__APPLE__) || !defined(__MACH__)
-	gtk_widget_realize(GTK_WIDGET(top_window));
-	// force our popup to be recent enough to display on top
-	GdkWindow *gdk_win = GTK_WIDGET(top_window)->window;
-	gdk_x11_window_set_user_time(gdk_win, gdk_x11_get_server_time(gdk_win));
-#endif
-
-	gtk_window_present(top_window);
 }
 
 extern
@@ -704,6 +692,14 @@ int main(int argc, char **argv)
 	tstart = start_timing();
 
 	gtk_widget_show_all(GTK_WIDGET(top_window));
+
+	// TODO: detect gdk_x11 at configure time instead of this hack
+#if !defined(__APPLE__) || !defined(__MACH__)
+	gtk_widget_realize(GTK_WIDGET(top_window));
+	// force our popup to be recent enough to display on top
+	GdkWindow *gdk_win = GTK_WIDGET(top_window)->window;
+	gdk_x11_window_set_user_time(gdk_win, gdk_x11_get_server_time(gdk_win));
+#endif
 	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, gdk_cursor_new(GDK_WATCH));
 
 #if defined(__APPLE__)
