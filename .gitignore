@@ -1,13 +1,14 @@
-/ChangeLog
-/debian/changelog
 *.o
 .deps
+/ChangeLog
 /GPATH
 /GRTAGS
 /GSYMS
 /GTAGS
 /ID
 /TAGS
+/configure.ac
+/debian/changelog
 Makefile
 Makefile.in
 aclocal.m4

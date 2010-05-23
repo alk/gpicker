@@ -2,4 +2,7 @@
 
 git log >ChangeLog
 
+version=`git describe | sed -e 's/-/_/g' -e 's/^v//'`
+sed s/@@VERSION@@/$version/g <configure.ac.in >configure.ac
+
 aclocal && autoconf && autoheader && automake -a
