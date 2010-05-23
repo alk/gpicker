@@ -696,7 +696,6 @@ int main(int argc, char **argv)
 	gtk_widget_show_all(GTK_WIDGET(top_window));
 
 #ifdef WITH_GDK_X11
-	gtk_widget_realize(GTK_WIDGET(top_window));
 	// force our popup to be recent enough to display on top
 	GdkWindow *gdk_win = GTK_WIDGET(top_window)->window;
 	gdk_x11_window_set_user_time(gdk_win, gdk_x11_get_server_time(gdk_win));
