@@ -703,7 +703,7 @@ int main(int argc, char **argv)
 #endif
 	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, gdk_cursor_new(GDK_WATCH));
 
-#if defined(__APPLE__)
+#if !defined(__APPLE__)
 	// OSX may benefit from this too, but I cannot test it yet.
 	while (gtk_events_pending())
 		gtk_main_iteration();
