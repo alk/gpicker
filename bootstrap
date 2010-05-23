@@ -1,8 +1,11 @@
 #!/bin/sh
 
+cd "`dirname $0`"
 git log >ChangeLog
 
 version=`git describe | sed -e 's/-/_/g' -e 's/^v//'`
 sed s/@@VERSION@@/$version/g <configure.ac.in >configure.ac
+date=`LANG=C date -R`
+sed -e "s/@DEB_VERSION@/`echo $version | sed -e 's/_/./g' -e 's/^v//'`/g" -e s/@DATE@/"$date"/g <debian/changelog.in >debian/changelog
 
 aclocal && autoconf && autoheader && automake -a
