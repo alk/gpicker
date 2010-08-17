@@ -17,8 +17,8 @@
 "  Maintainers: Sergey Avseyev <sergey.avseyev@gmail.com>
 " Contributors:
 "
-" Release Date: December 7, 2009
-"      Version: 0.2
+" Release Date: August 17, 2010
+"      Version: 0.3
 "     Keywords: autocompletion
 "
 "      Install: Copy file into ~/.vim/plugin directory or put in .vimrc
@@ -27,9 +27,10 @@
 "
 "        Usage: To launch the gpicker:
 "
-"                 <Leader>lg - Opens the gpicker from current directory.
-"                 <Leader>m  - Opens the gpicker to chose from list of current
-"                 buffers.
+"                 <Leader>mr - Opens the gpicker from directory of file.
+"                 <Leader>mg - Opens the gpicker from current directory.
+"                 <Leader>mb - Opens the gpicker to chose from list of 
+"                 current buffers.
 "
 "               You can also use the command:
 "
@@ -43,16 +44,17 @@ if exists("g:loaded_gpicker") || executable("gpicker") == 0
   finish
 endif
 
-command GPickFile :call <SID>GPickFile(".")
-command GPickFileFromHere :call <SID>GPickFile(expand("%:h"))
-function! s:GPickFile(path)
+command GPickFile :call <SID>GPickFile(".", "guess")
+command GPickFileDefault :call <SID>GPickFile(".", "default")
+command GPickFileFromHere :call <SID>GPickFile(expand("%:h"), "guess")
+function! s:GPickFile(path, type)
   if empty(a:path)
     let l:path = "."
   else
     let l:path = a:path
   endif
   " select file via gpicker
-  let l:filename = l:path . "/" . system('gpicker -t guess ' . l:path)
+  let l:filename = l:path . "/" . system('gpicker -t ' . a:type . " " . l:path)
   if filereadable(l:filename)
     " open selected file
     execute "edit " . l:filename
@@ -74,27 +76,9 @@ function! s:GPickBuffer()
   execute "buffer " . substitute(l:selected, '[u%#ah=+x-]\+\s\+\d\+$', '', '')
 endfunction
 
-command GPickRiDoc :call <SID>GPickRiDoc()
-function! s:GPickRiDoc()
-  let l:cursor = expand("<cword>")
-  " get selection via gpicker
-  let l:selected  = system('fasteri | gpicker --init-filter="'. l:cursor .'" --name-separator \\n -')
-
-  if empty(l:selected) == 0
-    " open buffer
-    execute "new [ri]"
-    setlocal buftype=nofile readonly modifiable
-    setlocal bufhidden=wipe
-    let l:contents = system(printf("fasteri '%s'", l:selected))
-    silent put=l:contents
-    keepjumps 0d
-    setlocal nomodifiable
-  endif
-endfunction
-
-nmap <silent> <leader>lg :GPickFile<cr>
-nmap <silent> <leader>lr :GPickFileFromHere<cr>
-nmap <silent> <leader>m :GPickBuffer<cr>
-nmap <silent> <leader>k :GPickRiDoc<cr>
+nmap <silent> <leader>mg :GPickFile<cr>
+nmap <silent> <leader>mf :GPickFileDefault<cr>
+nmap <silent> <leader>mr :GPickFileFromHere<cr>
+nmap <silent> <leader>mb :GPickBuffer<cr>
 
 let g:loaded_gpicker = 1
