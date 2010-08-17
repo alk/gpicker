@@ -54,10 +54,10 @@ function! s:GPickFile(path, type)
     let l:path = a:path
   endif
   " select file via gpicker
-  let l:filename = l:path . "/" . system('gpicker -t ' . a:type . " " . l:path)
+  let l:filename = l:path . "/" . system('gpicker -t ' . a:type . " " . shellescape(l:path))
   if filereadable(l:filename)
     " open selected file
-    execute "edit " . l:filename
+    execute "edit " . escape(l:filename, ' ')
   endif
 endfunction
 
