@@ -513,7 +513,10 @@ int check_parents(char* name)
 			break;
 		}
 	}
-	fchdir(cwd);
+	if (fchdir(cwd) < 0) {
+		perror("cannot chdir back");
+		exit(1);
+	}
 	return rv;
 }
 
