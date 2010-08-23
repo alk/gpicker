@@ -17,7 +17,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
-#include "xmalloc.h"
+#include "gpicker_xmalloc.h"
 #include "do_with_main_loop.h"
 
 struct do_with_main_loop_process {

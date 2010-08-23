@@ -10,7 +10,7 @@
 #include "loading.h"
 #include "filtration.h"
 #include "vector.h"
-#include "xmalloc.h"
+#include "gpicker_xmalloc.h"
 
 static
 char *pattern;

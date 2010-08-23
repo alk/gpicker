@@ -31,7 +31,7 @@
 #include "vector.h"
 #include "timing.h"
 #include "refcounted_str.h"
-#include "xmalloc.h"
+#include "gpicker_xmalloc.h"
 
 #ifndef WITH_GUI
 #define NO_PARALLEL_FILTRATION

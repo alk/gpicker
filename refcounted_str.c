@@ -18,7 +18,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <glib.h>
-#include "xmalloc.h"
+#include "gpicker_xmalloc.h"
 
 #include "refcounted_str.h"
 

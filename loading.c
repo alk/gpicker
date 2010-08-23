@@ -31,7 +31,7 @@
 
 #include "timing.h"
 #include "filtration.h"
-#include "xmalloc.h"
+#include "gpicker_xmalloc.h"
 #include "loading.h"
 #include "inline_qsort.h"
 

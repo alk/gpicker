@@ -45,7 +45,7 @@
 
 #endif
 
-#include "xmalloc.h"
+#include "gpicker_xmalloc.h"
 #include "filtration.h"
 #include "vector.h"
 #include "timing.h"
