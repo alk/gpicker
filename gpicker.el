@@ -192,4 +192,45 @@
                       args)))
       (split-string out "\0" t))))
 
+(defun gpicker-complete-list (list &optional init-filter)
+  (with-temp-file *gpicker-buffers-list*
+    (let ((standard-output (current-buffer)))
+      (dolist (name list)
+        (princ name)
+        (princ "\0"))))
+  (unwind-protect (let ((rv (gpicker-grab-stdout *gpicker-path*
+                                                 "--init-filter" (or init-filter (ffap-string-at-point))
+                                                 "-")))
+                    (and rv
+                         (split-string rv "\0" t)))
+    (discard-input)))
+
+(defun alk-obarray-to-list (obarray)
+  (let ((rv))
+    (mapatoms (lambda (sym)
+                (setq rv (cons (symbol-name sym) rv)))
+              obarray)
+    rv))
+
+(defun gpicker-goto-tag ()
+  (interactive)
+  (find-tag (car (gpicker-complete-list (alk-obarray-to-list (tags-completion-table))))))
+
+(defun gpicker-imenu ()
+  (interactive)
+  (require 'imenu)
+  (let* ((imenu-alist (imenu--make-index-alist))
+         (imenu (apply #'append
+                       (mapcar (lambda (pair)
+                                 (let ((val (cdr pair)))
+                                  (if (listp val)
+                                      nil ;; (mapcar #'car val)
+                                    (cons (car pair) nil))))
+                               imenu-alist)))
+         (selected (car (gpicker-complete-list imenu))))
+    (when selected
+      (imenu-default-goto-function selected (cdr (assoc selected imenu-alist)))
+      (recenter-top-bottom))))
+
+
 (provide 'gpicker)
