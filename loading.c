@@ -227,7 +227,8 @@ void read_filenames_from_mlocate_db(int fd)
 
 	if (!dont_sort) {
 		start = start_timing();
-		_quicksort_top(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
+		_quicksort_top(files, nfiles, sizeof(struct filename),
+			       (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
 		finish_timing(start, "initial qsort");
 	}
 }
