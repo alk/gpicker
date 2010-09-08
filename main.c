@@ -611,8 +611,9 @@ void parse_options(int argc, char **argv)
 	if (read_stdin) {
 		if (project_type)
 			fprintf(stderr, "Warning: project type with stdin input has no effect\n");
-	} else
+	} else if (!project_type || strcmp(project_type, "mlocate")) {
 		enter_project_dir();
+	}
 }
 
 static
