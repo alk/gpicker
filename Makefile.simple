@@ -2,4 +2,4 @@
 CFLAGS := -Wall -O2 -march=native -ggdb3
 
 gpicker-simple: *.c *.h
-	$(CC) $(CFLAGS) -DNO_CONFIG -Dsimple_main=main -o $@ gpicker_xmalloc.c vector.c scorer.c loading.c filtration.c simple_main.c
+	$(CC) $(CFLAGS) -DNO_CONFIG -Dsimple_main=main -o $@ xmalloc.c vector.c scorer.c loading.c filtration.c simple_main.c

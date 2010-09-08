@@ -1,10 +1,10 @@
 bin_PROGRAMS = gpicker gpicker-simple
-gpicker_SOURCES = main.c scorer.c filtration.c vector.c \
+gpicker_SOURCES = main.c scorer.c filtration.c vector.c xmalloc.c \
  refcounted_str.c refcounted_str.h compiler.h \
  do_with_main_loop.h do_with_main_loop.c \
  loading.h loading.c \
- simple_main.c gpicker_xmalloc.c \
- filtration.h vector.h scorer.h gpicker_xmalloc.h timing.h inline_qsort.h
+ simple_main.c \
+ filtration.h vector.h scorer.h xmalloc.h timing.h inline_qsort.h
 gpicker_LDADD = @gtk2_LIBS@ @gthread_LIBS@
 AM_CFLAGS = @gtk2_CFLAGS@ @gthread_CFLAGS@
 AM_CPPFLAGS = @EXTRA_CPPFLAGS@

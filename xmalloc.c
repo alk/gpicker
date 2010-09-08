@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "gpicker_xmalloc.h"
+#include "xmalloc.h"
 
 __attribute__((noreturn))
 void memory_exhausted(void)
