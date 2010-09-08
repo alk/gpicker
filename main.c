@@ -677,6 +677,8 @@ int simple_main(int, char **);
 
 int main(int argc, char **argv)
 {
+	init_loading();
+
 	char *gpicker = basename(xstrdup(argv[0]));
 	if (!strcmp(gpicker, "gpicker-simple"))
 		return simple_main(argc, argv);

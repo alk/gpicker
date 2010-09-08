@@ -38,13 +38,19 @@ struct vector files_vector = {.eltsize = sizeof(struct filename)};
 
 char *name_separator;
 char *dir_separator;
-char *eat_prefix = "./";
+char *default_eat_prefix = "./";
+char *eat_prefix;
 
 int gpicker_bytes_readen;
 int gpicker_load_stdin_too;
 
 static volatile
 int reading_aborted;
+
+void init_loading(void)
+{
+	eat_prefix = default_eat_prefix;
+}
 
 static
 void add_filename(char *p, int dirlength)
@@ -186,12 +192,20 @@ void read_filenames_from_mlocate_db(int fd)
 	if (prefix[prefix_len-2] == '/')
 		prefix_len--;
 
+	if (eat_prefix != default_eat_prefix) {
+		prefix_len = 0;
+		if (eat_prefix[0] != 0) {
+			fprintf(stderr, "mlocate project type supports only default and empty prefixes\n");
+			exit(1);
+		}
+	}
+
 	while (strings < end) {
 		// dir name is in strings
 		int len = strlen(strings);
 		int read_buffer_len = strlen(strings + prefix_len);
 		memcpy(read_buffer, strings + prefix_len, read_buffer_len);
-		if (read_buffer_len)
+		if (read_buffer_len && read_buffer[read_buffer_len-1] != '/')
 			read_buffer[read_buffer_len++] = '/';
 
 		char *p = strings + len + 1;
