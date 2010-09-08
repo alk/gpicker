@@ -221,6 +221,10 @@ void read_filenames_from_mlocate_db(int fd)
 
 	free(data);
 
+	if (gpicker_load_stdin_too) {
+		read_filenames(0);
+	}
+
 	if (!dont_sort) {
 		start = start_timing();
 		_quicksort_top(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
