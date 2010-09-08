@@ -184,10 +184,11 @@ void read_filenames_from_mlocate_db(int fd)
 	data = xmalloc(st.st_size);
 	read_all(fd, data, st.st_size);
 
+	/* see man 5 mlocate.db */
 	char *prefix = data + 0x10;
-	int prefix_len = strlen(prefix) + 1;
+	int prefix_len = strlen(prefix);
 	char *end = data + st.st_size;
-	char *strings = prefix + prefix_len + ntohl(*((uint32_t *)(data + 0x8))) + 0x10;
+	char *strings = prefix + prefix_len + ntohl(*((uint32_t *)(data + 0x8))) + 0x11;
 
 	if (prefix[prefix_len-2] == '/')
 		prefix_len--;
@@ -204,7 +205,12 @@ void read_filenames_from_mlocate_db(int fd)
 		// dir name is in strings
 		int len = strlen(strings);
 		int read_buffer_len = strlen(strings + prefix_len);
-		memcpy(read_buffer, strings + prefix_len, read_buffer_len);
+		char *used_prefix = strings + prefix_len;
+		if (prefix_len != 0 && *used_prefix == '/') {
+			used_prefix++;
+			read_buffer_len--;
+		}
+		memcpy(read_buffer, used_prefix, read_buffer_len);
 		if (read_buffer_len && read_buffer[read_buffer_len-1] != '/')
 			read_buffer[read_buffer_len++] = '/';
 
