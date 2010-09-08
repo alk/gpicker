@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <sys/errno.h>
 #include <sys/types.h>
-#include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -141,9 +140,27 @@ void read_filenames_abort(void)
 	reading_aborted = 1;
 }
 
+static
+void read_all(int fd, char *data, int size)
+{
+	int readen;
+	while (size > 0) {
+		readen = read(fd, data, size);
+		if (readen < 0) {
+			if (errno == EINTR)
+				continue;
+			perror("read_all");
+			exit(1);
+		}
+		if (readen == 0)
+			abort();
+		data += readen;
+		size -= readen;
+	}
+}
+
 void read_filenames_from_mlocate_db(int fd)
 {
-#if !defined(__APPLE__) && !defined(__MACH__)
 	static char read_buffer[65536];
 
 	timing_t start;
@@ -157,11 +174,9 @@ void read_filenames_from_mlocate_db(int fd)
 		perror("read_filenames_from_mlocate_db:fstat");
 		exit(1);
 	}
-	data = mmap(0, (size_t)st.st_size, PROT_READ, MAP_SHARED, fd, 0);
-	if (data == MAP_FAILED) {
-		perror("read_filenames_from_mlocate_db:mmap");
-		exit(1);
-	}
+
+	data = xmalloc(st.st_size);
+	read_all(fd, data, st.st_size);
 
 	char *prefix = data + 0x10;
 	int prefix_len = strlen(prefix) + 1;
@@ -204,10 +219,11 @@ void read_filenames_from_mlocate_db(int fd)
 		strings = p + 0x11;
 	}
 
+	free(data);
+
 	if (!dont_sort) {
 		start = start_timing();
 		_quicksort_top(files, nfiles, sizeof(struct filename), (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
 		finish_timing(start, "initial qsort");
 	}
-#endif
 }
