@@ -402,7 +402,7 @@ int score_string(const char *string,
 		 unsigned* match)
 {
 	const char *pattern = query->pattern;
-	const unsigned pat_length = strlen(pattern);
+	unsigned pat_length = strlen(pattern);
 	char start_of_pattern_word[pat_length];
 	char translated_pattern[pat_length];
 
@@ -413,7 +413,7 @@ int score_string(const char *string,
 		return -1;
 
 	if (pat_length > MAX_PAT_LENGTH)
-		return -1;
+		pat_length = MAX_PAT_LENGTH;
 
 
 	struct prepared_pattern p = {
