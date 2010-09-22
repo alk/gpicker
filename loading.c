@@ -224,7 +224,7 @@ void read_filenames_from_mlocate_db(int fd)
 				memcpy(read_buffer+read_buffer_len, p, p_len);
 				int total_len = read_buffer_len + p_len;
 				char *last_slash = memrchr(read_buffer, '/', total_len);
-				int dirlength = last_slash ? last_slash - read_buffer : 0;
+				int dirlength = last_slash ? last_slash + 1 - read_buffer : 0;
 				char *dup = malloc(total_len+1);
 				memcpy(dup, read_buffer, total_len);
 				dup[total_len] = 0;
