@@ -93,10 +93,10 @@ void initialize_prepared_pattern(const char *pattern,
 struct prepared_pattern *prepare_pattern(const struct scorer_query *query)
 {
 	const char *pattern = query->pattern;
-	const unsigned pat_length = strlen(pattern);
+	unsigned pat_length = strlen(pattern);
 
 	if (pat_length > MAX_PAT_LENGTH)
-		return 0;
+		pat_length = MAX_PAT_LENGTH;
 
 	char *start_of_pattern_word = pat_length ? malloc(pat_length) : 0;
 	char *translated_pattern = pat_length ? malloc(pat_length) : 0;

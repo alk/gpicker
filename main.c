@@ -165,6 +165,7 @@ void cell_data_func(GtkTreeViewColumn *col,
 			     "text", text,
 			     NULL);
 
+		memset(match, -1, patlen*sizeof(match[0]));
 		passes = obtain_match(pattern, index, match);
 		if (!passes)
 			return;
