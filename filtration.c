@@ -44,6 +44,7 @@ struct simple_filter_state {
 
 char filter_dir_separator = '/';
 int dont_sort;
+int ignore_positions;
 
 struct vector filtered = {.eltsize = sizeof(struct filter_result)};
 
@@ -182,6 +183,7 @@ void *prepare_filter(const char *filter, filter_func *func, filter_destructor *d
 	return state;
 }
 
+static
 int compare_filter_result(struct filter_result *a, struct filter_result *b)
 {
 	int rv = b->score - a->score;
@@ -191,6 +193,9 @@ int compare_filter_result(struct filter_result *a, struct filter_result *b)
 	rv = b->dirscore - a->dirscore;
 	if (rv)
 		return rv;
+	if (ignore_positions)
+		return 0;
+
 	rv = a->last_match_pos - b->last_match_pos;
 	if (rv)
 		return rv;

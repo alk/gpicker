@@ -487,6 +487,7 @@ GOptionEntry entries[] = {
 	{"init-filter", 'i', 0, G_OPTION_ARG_STRING, &init_filter, "initial filter value", 0},
 	{"load-stdin-too", 0, 0, G_OPTION_ARG_NONE, &gpicker_load_stdin_too, "read additional filenames from stdin", 0},
 	{"output-index", 'I', 0, G_OPTION_ARG_NONE, &output_index, "print selection index instead of value (implies -S)", 0},
+	{"ignore-positions", 'P', 0, G_OPTION_ARG_NONE, &ignore_positions, "ignore match position for sorting", 0},
 	{0}
 };
 
