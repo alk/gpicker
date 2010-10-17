@@ -232,5 +232,17 @@
       (imenu-default-goto-function selected (cdr (assoc selected imenu-alist)))
       (recenter-top-bottom))))
 
+(defun gpicker-isearch ()
+  (interactive)
+  (let ((old-current-buffer (current-buffer)))
+    (with-temp-file *gpicker-buffers-list*
+      (let ((standard-output (current-buffer)))
+        (princ (with-current-buffer old-current-buffer
+                 (buffer-substring 1 (buffer-end 1)))))))
+  (let ((rv (gpicker-grab-stdout *gpicker-path* "-IlP" "-d" "\\n" "-n" "\\n" "-")))
+    (and (> (length rv) 0)
+         (let ((line-num (1+ (string-to-number rv 10))))
+           (goto-line line-num)))))
+
 
 (provide 'gpicker)
