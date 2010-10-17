@@ -44,6 +44,8 @@ char *eat_prefix;
 int gpicker_bytes_readen;
 int gpicker_load_stdin_too;
 
+int dont_sort_initial;
+
 static volatile
 int reading_aborted;
 
@@ -136,7 +138,7 @@ void read_filenames(int fd)
 		add_filename(start, dirlength);
 	}
 
-	if (!dont_sort)
+	if (!dont_sort && !dont_sort_initial)
 		_quicksort_top(files, nfiles, sizeof(struct filename),
 			       (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
 }
