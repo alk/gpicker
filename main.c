@@ -61,6 +61,7 @@ static GtkListStore *list_store;
 static char *init_filter;
 static gboolean show_version;
 static gboolean multiselect;
+static gboolean align_left;
 static char *project_type;
 static char *project_dir;
 static gboolean read_stdin;
@@ -195,8 +196,8 @@ void setup_column(void)
 	GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
 	GtkTreeViewColumn *col;
 	g_object_set(G_OBJECT(renderer),
-		     "ellipsize", PANGO_ELLIPSIZE_START,
-		     "alignment", PANGO_ALIGN_RIGHT,
+		     "ellipsize", align_left ? PANGO_ELLIPSIZE_END : PANGO_ELLIPSIZE_START,
+		     "alignment", align_left ? PANGO_ALIGN_LEFT : PANGO_ALIGN_RIGHT,
 		     NULL);
 
 	col = gtk_tree_view_column_new_with_attributes("filename", renderer, NULL);
@@ -476,6 +477,7 @@ GOptionEntry entries[] = {
 	{"dir-separator", 'd', 0, G_OPTION_ARG_STRING, &dir_separator, "separator of directory names from stdin (/ is default)", 0},
 	{"eat-prefix", 0, 0, G_OPTION_ARG_STRING, &eat_prefix, "eat this prefix from names (./ is default)", 0},
 	{"multiselect", 'm', 0, G_OPTION_ARG_NONE, &multiselect, "enable multiselect", 0},
+	{"left-align", 'l', 0, G_OPTION_ARG_NONE, &align_left, "left align everything (default is right-align)", 0},
 	{"init-filter", 'i', 0, G_OPTION_ARG_STRING, &init_filter, "initial filter value", 0},
 	{"load-stdin-too", 0, 0, G_OPTION_ARG_NONE, &gpicker_load_stdin_too, "read additional filenames from stdin", 0},
 	{0}
@@ -648,7 +650,7 @@ void build_ui()
 	gtk_container_add(GTK_CONTAINER(top_window), GTK_WIDGET(vbox));
 
 	name_entry = GTK_ENTRY(gtk_entry_new());
-	gtk_entry_set_alignment(name_entry, 1.0);
+	gtk_entry_set_alignment(name_entry, align_left ? 0.0 : 1.0);
 	gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(name_entry),
 			   FALSE, TRUE, 0);
 
