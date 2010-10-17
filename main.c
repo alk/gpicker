@@ -65,6 +65,7 @@ static gboolean align_left;
 static char *project_type;
 static char *project_dir;
 static gboolean read_stdin;
+static gboolean output_index;
 static gboolean disable_bzr;
 static gboolean disable_hg;
 
@@ -235,7 +236,11 @@ void selection_printer(gpointer data,
 	gtk_tree_model_get_iter(GTK_TREE_MODEL(list_store), &iter, path);
 	gtk_tree_model_get(GTK_TREE_MODEL(list_store), &iter, 0, &idx, -1);
 
-	fputs(files[idx].p, stdout);
+	if (output_index) {
+		printf("%d", idx);
+	} else {
+		fputs(files[idx].p, stdout);
+	}
 
 	gtk_tree_path_free(path);
 }
@@ -481,6 +486,7 @@ GOptionEntry entries[] = {
 	{"dont-sort", 'S', 0, G_OPTION_ARG_NONE, &dont_sort_initial, "dont sort initial list", 0},
 	{"init-filter", 'i', 0, G_OPTION_ARG_STRING, &init_filter, "initial filter value", 0},
 	{"load-stdin-too", 0, 0, G_OPTION_ARG_NONE, &gpicker_load_stdin_too, "read additional filenames from stdin", 0},
+	{"output-index", 'I', 0, G_OPTION_ARG_NONE, &output_index, "print selection index instead of value (implies -S)", 0},
 	{0}
 };
 
@@ -586,6 +592,10 @@ void parse_options(int argc, char **argv)
 		fprintf(stderr, "option parsing failed: %s\n", error->message);
 		exit(1);
 	}
+
+	if (output_index)
+		dont_sort_initial = 1;
+
 	if (show_version) {
 		fprintf(stdout, "%s %s\n", PACKAGE_NAME, VERSION);
 		exit(0);
