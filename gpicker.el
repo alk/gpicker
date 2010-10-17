@@ -198,7 +198,7 @@
       (dolist (name list)
         (princ name)
         (princ "\0"))))
-  (unwind-protect (let ((rv (gpicker-grab-stdout *gpicker-path*
+  (unwind-protect (let ((rv (gpicker-grab-stdout *gpicker-path* "-l"
                                                  "--init-filter" (or init-filter (ffap-string-at-point))
                                                  "-")))
                     (and rv
