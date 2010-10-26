@@ -62,8 +62,10 @@ static char *init_filter;
 static gboolean show_version;
 static gboolean multiselect;
 static gboolean align_left;
+static gboolean print_pattern;
 static char *project_type;
 static char *project_dir;
+static char *pattern_text;
 static gboolean read_stdin;
 static gboolean output_index;
 static gboolean disable_bzr;
@@ -252,8 +254,12 @@ void print_selection(void)
 	GList *list;
 
 	list = gtk_tree_selection_get_selected_rows(sel, 0);
-	if (!list)
+	if (!list) {
+		if (print_pattern) {
+			fputs(pattern_text, stdout);
+		}
 		return;
+	}
 
 	g_list_foreach(list, selection_printer, NULL);
 	g_list_free(list);
@@ -287,9 +293,9 @@ void on_entry_changed(GtkEditable *editable,
 
 	timing_t start = start_timing();
 
-	char *text = g_strdup(gtk_entry_get_text(GTK_ENTRY(editable)));
-	filter_tree_view(text);
-	free(text);
+	free(pattern_text);
+	pattern_text = g_strdup(gtk_entry_get_text(GTK_ENTRY(editable)));
+	filter_tree_view(pattern_text);
 
 	finish_timing(start, "filtration");
 }
@@ -483,6 +489,7 @@ GOptionEntry entries[] = {
 	{"eat-prefix", 0, 0, G_OPTION_ARG_STRING, &eat_prefix, "eat this prefix from names (./ is default)", 0},
 	{"multiselect", 'm', 0, G_OPTION_ARG_NONE, &multiselect, "enable multiselect", 0},
 	{"left-align", 'l', 0, G_OPTION_ARG_NONE, &align_left, "left align everything (default is right-align)", 0},
+	{"print-pattern", 'p', 0, G_OPTION_ARG_NONE, &print_pattern, "print pattern if nothing matched (default is false)", 0},
 	{"dont-sort", 'S', 0, G_OPTION_ARG_NONE, &dont_sort_initial, "dont sort initial list", 0},
 	{"init-filter", 'i', 0, G_OPTION_ARG_STRING, &init_filter, "initial filter value", 0},
 	{"load-stdin-too", 0, 0, G_OPTION_ARG_NONE, &gpicker_load_stdin_too, "read additional filenames from stdin", 0},
@@ -761,3 +768,4 @@ int main(int argc, char **argv)
 		gtk_main();
 	return 0;
 }
+
