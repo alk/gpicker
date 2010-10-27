@@ -255,9 +255,8 @@ void print_selection(void)
 
 	list = gtk_tree_selection_get_selected_rows(sel, 0);
 	if (!list) {
-		if (print_pattern) {
+		if (print_pattern)
 			fputs(pattern_text, stdout);
-		}
 		return;
 	}
 
@@ -768,4 +767,3 @@ int main(int argc, char **argv)
 		gtk_main();
 	return 0;
 }
-
