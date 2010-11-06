@@ -16,6 +16,8 @@
  * `http://www.gnu.org/licenses/'.
  */
 #include <stdlib.h>
+#include <assert.h>
+#include <memory.h>
 #include "vector.h"
 
 void *vector_append(struct vector *v)
@@ -40,12 +42,40 @@ void vector_clear(struct vector *v)
 
 struct vector *vector_splice_into(struct vector *src, struct vector *dst)
 {
-	if (dst->buffer)
-		free(dst->buffer);
+	assert(src->eltsize == dst->eltsize);
+
+	free(dst->buffer);
 	*dst = *src;
 	src->used = 0;
 	src->buffer = 0;
 	src->avail = 0;
+
+	return dst;
+}
+
+struct vector *vector_concat_into(struct vector *src, struct vector *dst)
+{
+	assert(src->eltsize == dst->eltsize);
+
+	int new_demand = dst->used + src->used;
+	if (new_demand > dst->avail) {
+		int v = ((new_demand - 1) >> 16) | (new_demand - 1);
+		v |= (v >> 8);
+		v |= (v >> 4);
+		v |= (v >> 2);
+		v |= (v >> 1);
+		v += 1;
+		if (!v)
+			v = 4096 / dst->eltsize;
+		dst->buffer = realloc(dst->buffer, v * dst->eltsize);
+		dst->avail = v;
+	}
+	memcpy(dst->buffer + dst->eltsize * dst->used, src->buffer, src->used * dst->eltsize);
+	dst->used = new_demand;
+
+	free(src->buffer);
+	src->buffer = 0;
+	src->avail = src->used = 0;
 
 	return dst;
 }

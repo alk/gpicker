@@ -19,6 +19,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #ifndef NO_CONFIG
 #include "config.h"
 #endif
@@ -223,7 +227,9 @@ struct filter_result *do_filter_files(const char *pattern)
 	filter_func filter_func;
 	filter_destructor destructor = 0;
 	timing_t start, whole;
-	int i;
+	int j,i;
+	int nfiles = files_vector.used;
+
 
 	whole = start = start_timing();
 	vector_clear(&partial_filtered);
@@ -247,17 +253,59 @@ struct filter_result *do_filter_files(const char *pattern)
 	finish_timing(start, "prepare_filter");
 
 	start = start_timing();
-	for (i=0; i<nfiles; i++) {
-		if (!(i % 16384) && abort_filtration_request)
-			break;
-		struct filter_result result;
-		int passes = filter_func(files + i, filter, &result, 0);
-		struct filter_result *place;
-		if (!passes)
-			continue;
-		place = vector_append(&partial_filtered);
-		result.index = i;
-		*place = result;
+
+#ifdef _OPENMP
+#	pragma omp parallel						\
+	shared(files_vector, abort_filtration_request, partial_filtered, filter, nfiles) \
+	private(j, i)
+#endif
+	{
+		struct vector *filtered_collection;
+#ifdef _OPENMP
+		filtered_collection = xmalloc(sizeof(struct vector));
+		memset(filtered_collection, 0, sizeof(struct vector));
+		filtered_collection -> eltsize = sizeof(struct filter_result);
+#else
+		filtered_collection = &partial_filtered;
+#endif
+
+#ifdef _OPENMP
+		/* timing_printf("OMP thread %d started\n", omp_get_thread_num()); */
+#		pragma omp for schedule(static) nowait
+#endif
+		for (j=0; j<nfiles; j += 16384) {
+			int bound = j + 16384;
+			if (bound >= files_vector.used)
+				bound = files_vector.used;
+
+#ifdef _OPENMP
+			if (abort_filtration_request)
+				continue;
+#else
+			if (abort_filtration_request)
+				break;
+#endif
+
+			for (i = j; i < bound; i++) {
+				struct filter_result result;
+				int passes = filter_func(((struct filename *)(files_vector.buffer)) + i,
+							 filter, &result, 0);
+				struct filter_result *place;
+				if (!passes)
+					continue;
+				place = vector_append(filtered_collection);
+				result.index = i;
+				*place = result;
+			}
+		}
+
+#ifdef _OPENMP
+#		pragma omp critical
+		{
+			vector_concat_into(filtered_collection, &partial_filtered);
+		}
+		free(filtered_collection);
+#endif
 	}
 	finish_timing(start, "actual filtration");
 

@@ -148,7 +148,7 @@ void read_filenames(int fd)
 	}
 
 	if (!dont_sort && !dont_sort_initial)
-		_quicksort_top(files, nfiles, sizeof(struct filename),
+		_quicksort_top(files, files_vector.used, sizeof(struct filename),
 			       (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
 
 	finish_timing(start, "filenames parsing");
@@ -261,7 +261,7 @@ void read_filenames_from_mlocate_db(int fd)
 
 	if (!dont_sort) {
 		start = start_timing();
-		_quicksort_top(files, nfiles, sizeof(struct filename),
+		_quicksort_top(files, files_vector.used, sizeof(struct filename),
 			       (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
 		finish_timing(start, "initial qsort");
 	}
