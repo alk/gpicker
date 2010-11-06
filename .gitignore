@@ -1,3 +1,4 @@
+*.gcda
 *.o
 .deps
 /ChangeLog
