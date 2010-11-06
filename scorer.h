@@ -10,9 +10,9 @@ struct scorer_query {
 struct filter_result {
 	int index;
 	int score;
-	int last_match_pos;
 	int dirscore;
-	int first_dir_match_pos;
+	short last_match_pos;
+	short first_dir_match_pos;
 };
 
 struct prepared_pattern {
