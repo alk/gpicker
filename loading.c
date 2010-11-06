@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <arpa/inet.h> // for ntohl
 
+#include "config.h"
 #include "timing.h"
 #include "filtration.h"
 #include "xmalloc.h"
@@ -124,6 +125,8 @@ void read_filenames(int fd)
 
 	int eat_prefix_len = strlen(eat_prefix);
 
+	timing_t start = start_timing();
+
 	while (p < endp) {
 		int dirlength = 0;
 		char *start;
@@ -131,9 +134,15 @@ void read_filenames(int fd)
 		if (strncmp(eat_prefix, p, eat_prefix_len) == 0)
 			p += eat_prefix_len;
 		start = p;
+#if 1
 		while ((ch = *p++) != name_separator[0])
 			if (ch == filter_dir_separator)
 				dirlength = p - start;
+#else
+		p = rawmemchr(start, name_separator[0]) + 1;
+		char *rp = memrchr(start, filter_dir_separator, p - 1 - start);
+		dirlength = rp ? rp - start : 0;
+#endif
 		p[-1] = 0;
 		add_filename(start, dirlength);
 	}
@@ -141,6 +150,8 @@ void read_filenames(int fd)
 	if (!dont_sort && !dont_sort_initial)
 		_quicksort_top(files, nfiles, sizeof(struct filename),
 			       (int (*)(const void *, const void *))filename_compare, files + FILTER_LIMIT);
+
+	finish_timing(start, "filenames parsing");
 }
 
 void read_filenames_abort(void)
@@ -242,6 +253,7 @@ void read_filenames_from_mlocate_db(int fd)
 	}
 
 	free(data);
+	finish_timing(start, "read_filenames_from_mlocate_db");
 
 	if (gpicker_load_stdin_too) {
 		read_filenames(0);
