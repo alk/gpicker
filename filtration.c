@@ -312,13 +312,20 @@ static void (*ft_callback)(char *);
 static
 gpointer filtration_thread(gpointer);
 
+static
+GThread *filtration_thread_id;
+
 static void init_ft_state()
 {
 	if (ft_mutex)
 		return;
 	ft_mutex = g_mutex_new();
 	ft_filtation_cond = g_cond_new();
-	g_thread_create(filtration_thread, 0, 0, 0);
+	filtration_thread_id = g_thread_create(filtration_thread, 0, 1, 0);
+	if (!filtration_thread_id) {
+		fputs("failed to create filtration thread\n", stderr);
+		abort();
+	}
 }
 
 static
@@ -332,6 +339,9 @@ gboolean filtration_idle(gpointer _pattern)
 	return FALSE;
 }
 
+static volatile
+unsigned kill_filtration_thread;
+
 static
 gpointer filtration_thread(gpointer _dummy)
 {
@@ -339,8 +349,14 @@ gpointer filtration_thread(gpointer _dummy)
 	g_mutex_lock(ft_mutex);
 
 again:
-	while (!ft_pattern)
+	while (!ft_pattern && !kill_filtration_thread)
 		g_cond_wait(ft_filtation_cond, ft_mutex);
+
+	if (kill_filtration_thread) {
+		g_mutex_unlock(ft_mutex);
+		return 0;
+	}
+
 	refcounted_str_get(&pattern, ft_pattern);
 	g_mutex_unlock(ft_mutex);
 
@@ -349,6 +365,12 @@ again:
 	struct filter_result *rv = do_filter_files(pattern->str);
 
 	g_mutex_lock(ft_mutex);
+
+	if (kill_filtration_thread) {
+		refcounted_str_put(&pattern);
+		g_mutex_unlock(ft_mutex);
+		return 0;
+	}
 
 	if (!abort_filtration_request) {
 		// no abort request was made, so ft_pattern == pattern
@@ -386,7 +408,33 @@ put_pattern:
 	return 0;
 }
 
-#endif // WITH_GUI
+void uninit_filter(void)
+{
+	if (!ft_mutex)
+		return;
+
+	g_mutex_lock(ft_mutex);
+
+	if (ft_pattern)
+		refcounted_str_put(&ft_pattern);
+	abort_filtration_request = 1;
+	kill_filtration_thread = 1;
+	ft_pattern = 0;
+	ft_callback = 0;
+
+	g_cond_broadcast(ft_filtation_cond);
+	g_mutex_unlock(ft_mutex);
+
+	g_thread_join(filtration_thread_id);
+}
+
+#else // !WITH_GUI
+
+void uninit_filter(void)
+{
+}
+
+#endif // !WITH_GUI
 
 void filter_files_sync(char *pattern)
 {

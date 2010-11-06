@@ -765,5 +765,8 @@ int main(int argc, char **argv)
 
 	if (!program_exited)
 		gtk_main();
+
+	uninit_filter();
+
 	return 0;
 }

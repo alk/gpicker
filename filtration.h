@@ -26,6 +26,8 @@ void filter_files(char *pattern, void (*callback)(char *));
 
 int obtain_match(const char *pattern, int files_index, unsigned *match);
 
+void uninit_filter(void);
+
 #define FILTER_LIMIT 1000
 
 #endif
