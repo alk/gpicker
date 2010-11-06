@@ -48,6 +48,7 @@
 ;;; Code
 
 (require 'ffap)
+(require 'cl)
 
 (defvar *gpicker-path* "gpicker")
 (defvar *gpicker-simple-path* nil)
