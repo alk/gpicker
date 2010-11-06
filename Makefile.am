@@ -31,3 +31,6 @@ endif # HAVE_CHECK
 
 check-syntax:
 	$(COMPILE) -o /dev/null -S ${CHK_SOURCES}
+
+%.s : %.c
+	$(COMPILE) -S -fverbose-asm -o $@ $<
