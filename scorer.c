@@ -120,7 +120,7 @@ void free_prepared_pattern(struct prepared_pattern *p)
 	free(p);
 }
 
-static inline
+static inline __attribute__((always_inline))
 int score_string_prepared_inline(const unsigned pat_length,
 				 const char *string,
 				 const struct scorer_query *query,
