@@ -159,8 +159,8 @@ int score_string_prepared_inline(const unsigned pat_length,
 		do { \
 			ch = prepared_pattern->first_chars[i*2];	\
 			if (ch) {					\
-				const char *next = memchr(p, ch, string + string_length - p); \
-				const char *next2 = memchr(p, prepared_pattern->first_chars[i*2+1], string + string_length - p); \
+				const char *next = __builtin_memchr(p, ch, string + string_length - p); \
+				const char *next2 = __builtin_memchr(p, prepared_pattern->first_chars[i*2+1], string + string_length - p); \
 				if (!next && !next2)			\
 					return -1;			\
 				if (!next)				\
