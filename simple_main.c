@@ -98,6 +98,8 @@ void parse_options(int argc, char **argv)
 
 int simple_main(int argc, char **argv)
 {
+	init_loading();
+
 	parse_options(argc, argv);
 
 	read_filenames(0);
