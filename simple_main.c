@@ -11,6 +11,7 @@
 #include "filtration.h"
 #include "vector.h"
 #include "xmalloc.h"
+#include "scorer.h"
 
 static
 char *pattern;
@@ -18,6 +19,8 @@ static
 int output_match;
 static
 int output_scores;
+static
+int benchmark_matches;
 
 static
 void process_separator(char **separator_place, char *name, char *def)
@@ -57,7 +60,7 @@ void parse_options(int argc, char **argv)
 
 	name_separator = "\n";
 
-	while ((ch = getopt(argc, argv, "hn:d:SMx")) > 0) {
+	while ((ch = getopt(argc, argv, "hn:d:SMxb")) > 0) {
 		switch (ch) {
 		case 'h':
 		case '?':
@@ -76,6 +79,9 @@ void parse_options(int argc, char **argv)
 			break;
 		case 'x':
 			output_scores = 1;
+			break;
+		case 'b':
+			benchmark_matches = 1;
 		}
 	}
 
@@ -99,12 +105,20 @@ void parse_options(int argc, char **argv)
 int simple_main(int argc, char **argv)
 {
 	init_loading();
+	prepare_scorer();
 
 	parse_options(argc, argv);
 
+	dont_sort_initial = 1;
+
 	read_filenames(0);
 
-	filter_files_sync(pattern);
+	if (benchmark_matches) {
+		int i;
+		for (i = 0; i < 50; i++)
+			filter_files_sync(pattern);
+	} else
+		filter_files_sync(pattern);
 
 	struct filter_result *results = (struct filter_result *)filtered.buffer;
 	int i, len = filtered.used;

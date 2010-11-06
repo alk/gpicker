@@ -52,6 +52,7 @@
 #include "inline_qsort.h"
 #include "loading.h"
 #include "do_with_main_loop.h"
+#include "scorer.h"
 
 static GtkWindow *top_window;
 static GtkEntry *name_entry;
@@ -699,6 +700,7 @@ int simple_main(int, char **);
 int main(int argc, char **argv)
 {
 	init_loading();
+	prepare_scorer();
 
 	char *gpicker = basename(xstrdup(argv[0]));
 	if (!strcmp(gpicker, "gpicker-simple"))

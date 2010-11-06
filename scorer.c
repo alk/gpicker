@@ -23,6 +23,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include <inttypes.h>
+#include <stdbool.h>
 
 #include "scorer.h"
 #include "compiler.h"
@@ -46,16 +47,38 @@ void ____empty_printf(char *format, ...)
 #define dprintf(...) ____empty_printf(__VA_ARGS__)
 #endif
 
+static
+int delimiter_p_full(char ch)
+{
+	return (ch == '.' || ch == '_' || ch == '/' || ch == '*' || ch == ' ' || ch == '\'' || ch == '"');
+}
+
+static
+uint32_t delimiter_table[256/(sizeof(uint32_t)*8)];
+
+static
+char tolower_table[256];
+
+void prepare_scorer(void)
+{
+	int i;
+	for (i = 0; i < 256; i++) {
+		bool delimiter = delimiter_p_full(i);
+		delimiter_table[i/32] |= delimiter ? (1 << (i % 32)) : 0;
+		tolower_table[i] = tolower(i);
+	}
+}
+
 static inline
 int delimiter_p(char ch)
 {
-	return (ch == '.' || ch == '_' || ch == '/' || ch == '*' || ch == ' ' || ch == '\'' || ch == '"');
+	return delimiter_table[ch/32] & (1 << (ch % 32));
 }
 
 static inline
 char normalize_char(char ch, unsigned *is_delimiter)
 {
-	ch = tolower(ch);
+	ch = tolower_table[ch];
 	if (ch == '-')
 		ch = '_';
 	if (is_delimiter)
@@ -150,7 +173,7 @@ int score_string_prepared_inline(const unsigned pat_length,
 
 	dprintf("scoring string '%.*s' for pattern '%s'\n", string_length, string, query->pattern);
 
-#if 1
+#if 0
 	if (prepared_pattern->fc_count > 0) {
 		const char *p = string;
 		char ch;
