@@ -320,64 +320,18 @@ int score_string_prepared_1(const char *string,
 			    const unsigned string_length,
 			    unsigned* match)
 {
-#if 0 /* this code is broken */
-	unsigned fake_match;
-	if (string_length == 0)
-		return -1;
-
-	if (!match)
-		match = &fake_match;
-
-	char ch_lo = prepared_pattern->translated_pattern[0];
-	char ch_up = toupper(prepared_pattern->translated_pattern[0]);
-	if (ch_lo == ch_up) {
-		const char *p;
-		// ignoring pre-match delimiter
-		if (query->right_match) {
-			p = (string[0] == ch_lo) ? string : memrchr(string, ch_lo, string_length);
-		} else
-			p = memchr(string, ch_lo, string_length);
-		match[0] = string - p;
-		return (p == string) ? PROPER_WORD_START : 0;
-	}
-
-	if (!query->right_match) {
-		if (string[0] == ch_lo) {
-			match[0] = 0;
-			return PROPER_WORD_START;
-		}
-		const char *m_up = memchr(string, ch_up, string_length);
-
-		if (m_up) {
-			match[0] = m_up - string;
-			return PROPER_WORD_START;
-		}
-		const char *m_lo = memchr(string, ch_lo, string_length);
-		if (!m_lo)
-			return -1;
-
-		// should search for ch_lo after delimiter
-		match[0] = m_lo - string;
-		return delimiter_p(m_lo[0]) ? PROPER_WORD_START : 0;
-	} else {
-		const char *m_lo = memrchr(string, ch_lo, string_length);
-		const char *m_up = memrchr(string, ch_up, string_length);
-
-		if (m_up) {
-			match[0] = m_up - string;
-			return PROPER_WORD_START;
-		}
-
-		if (!m_lo)
-			return -1;
-
-		// should search for ch_lo after delimiter
-		match[0] = m_lo - string;
-		return ((m_lo == string) || delimiter_p(m_lo[-1]))? PROPER_WORD_START : 0;
-	}
-#else
 	return score_string_prepared_inline(1, string, query, prepared_pattern, string_length, match);
-#endif
+}
+
+/* partial compilation for pat_length == 2 */
+static __attribute__((noinline))
+int score_string_prepared_2(const char *string,
+			    const struct scorer_query *query,
+			    const struct prepared_pattern *prepared_pattern,
+			    const unsigned string_length,
+			    unsigned* match)
+{
+	return score_string_prepared_inline(2, string, query, prepared_pattern, string_length, match);
 }
 
 int score_string_prepared(const char *string,
@@ -391,6 +345,10 @@ int score_string_prepared(const char *string,
 
 	if (prepared_pattern->pat_length == 1) {
 		return score_string_prepared_1(string, query, prepared_pattern, string_length, match);
+	}
+
+	if (prepared_pattern->pat_length == 2) {
+		return score_string_prepared_2(string, query, prepared_pattern, string_length, match);
 	}
 
 	return score_string_prepared_inline(prepared_pattern->pat_length, string, query, prepared_pattern, string_length, match);
