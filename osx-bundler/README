@@ -1,0 +1,7 @@
+This doesn't seem to work completely properly yet. And is heavily
+based on bundling scripts for gnucash.
+
+See https://github.com/jralls/gnucash-on-osx
+
+WARNING: licensing of this two files is not clear, so distribution is
+not possible at this point.
