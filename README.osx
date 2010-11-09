@@ -1,1 +1,4 @@
-Building on OSX assumes gtk-osx is installed. Get it from http://www.gtk-osx.org/
+Follow instructions at
+http://apps.sourceforge.net/trac/gtk-osx/wiki/Build to get gtk+ on osx.
+
+Then (under jhbuild shell) do usual configure && make.
