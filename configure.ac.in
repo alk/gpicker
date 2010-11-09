@@ -1,8 +1,9 @@
 AC_INIT([gpicker], @@VERSION@@)
 AC_CONFIG_HEADERS(config.h)
 AM_INIT_AUTOMAKE
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile lib/Makefile])
 AC_PROG_CC
+gl_EARLY
 
 AC_ARG_ENABLE(timing, [AS_HELP_STRING(--enable-timing, Enable output of timing info on stderr)],
                       [AC_DEFINE([WITH_TIMING], 1, [Output timing info])])
@@ -64,5 +65,7 @@ AC_CHECK_HEADER([gdk/gdkx.h], [AC_DEFINE([WITH_GDK_X11], 1, [GDK wraps X11])])
 LIBS=$ac_func_search_save_LIBS
 CFLAGS=$ac_func_search_save_CFLAGS
 CPPFLAGS=$ac_func_search_save_CPPFLAGS
+
+gl_INIT
 
 AC_OUTPUT

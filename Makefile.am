@@ -1,3 +1,6 @@
+ACLOCAL_AMFLAGS = -I m4
+SUBDIRS = lib
+
 bin_PROGRAMS = gpicker gpicker-simple
 gpicker_SOURCES = main.c scorer.c filtration.c vector.c xmalloc.c \
  refcounted_str.c refcounted_str.h compiler.h \
@@ -12,7 +15,7 @@ AM_CPPFLAGS = @EXTRA_CPPFLAGS@
 man_MANS = gpicker.1 gpicker-simple.1
 
 EXTRA_DIST = gpicker.el gpicker.vim IDEAS CodingStyle README.osx \
- Makefile.simple debian gpicker.1 gpicker-simple.1
+ Makefile.simple debian gpicker.1 gpicker-simple.1 m4/gnulib-cache.m4
 
 # _SOURCES is only to fool automake not to search for gpicker-simple.c
 # Real build rule is simple 'ln'

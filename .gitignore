@@ -9,6 +9,8 @@
 /ID
 /INSTALL
 /TAGS
+/config.guess
+/config.sub
 /configure.ac
 /debian/changelog
 Makefile
