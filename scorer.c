@@ -15,8 +15,6 @@
  * along with this program.  If not, see
  * `http://www.gnu.org/licenses/'.
  */
-// needed for memrchr, which use is commented out
-// #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
