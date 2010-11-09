@@ -84,11 +84,23 @@ eat this prefix from names (./ is default)
 .B \-m, \-\-multiselect
 enable multiselect
 .TP
+.B \-l, \-\-left\-align
+left align gpicker entries (default is right-align)
+.TP
+.B \-p, \-\-print\-pattern
+print pattern if nothing matched
+.TP
+.B \-S, \-\-dont\-sort
+dont sort result list
+.TP
 .B \-i, \-\-init\-filter
 initial filter value
 .TP
 .B \-\-load\-stdin\-too
 read additional filenames from stdin
+.TP
+.B \-I, \-\-output\-index
+print selection index instead of value (implies \-S)
 .TP
 .B \-\-display=DISPLAY
 X display to use

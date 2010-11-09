@@ -490,7 +490,7 @@ GOptionEntry entries[] = {
 	{"multiselect", 'm', 0, G_OPTION_ARG_NONE, &multiselect, "enable multiselect", 0},
 	{"left-align", 'l', 0, G_OPTION_ARG_NONE, &align_left, "left align everything (default is right-align)", 0},
 	{"print-pattern", 'p', 0, G_OPTION_ARG_NONE, &print_pattern, "print pattern if nothing matched (default is false)", 0},
-	{"dont-sort", 'S', 0, G_OPTION_ARG_NONE, &dont_sort_initial, "dont sort initial list", 0},
+	{"dont-sort", 'S', 0, G_OPTION_ARG_NONE, &dont_sort_initial, "dont sort result list", 0},
 	{"init-filter", 'i', 0, G_OPTION_ARG_STRING, &init_filter, "initial filter value", 0},
 	{"load-stdin-too", 0, 0, G_OPTION_ARG_NONE, &gpicker_load_stdin_too, "read additional filenames from stdin", 0},
 	{"output-index", 'I', 0, G_OPTION_ARG_NONE, &output_index, "print selection index instead of value (implies -S)", 0},
