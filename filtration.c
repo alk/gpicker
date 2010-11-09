@@ -15,6 +15,10 @@
  * along with this program.  If not, see
  * `http://www.gnu.org/licenses/'.
  */
+#ifndef NO_CONFIG
+#include "config.h"
+#endif
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,9 +27,6 @@
 #include <omp.h>
 #endif
 
-#ifndef NO_CONFIG
-#include "config.h"
-#endif
 #ifdef WITH_GUI
 #include <glib.h>
 #endif

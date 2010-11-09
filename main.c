@@ -15,6 +15,8 @@
  * along with this program.  If not, see
  * `http://www.gnu.org/licenses/'.
  */
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <glib.h>
@@ -27,7 +29,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include "config.h"
 #include <assert.h>
 #include <libgen.h>
 

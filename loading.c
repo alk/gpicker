@@ -15,6 +15,8 @@
  * along with this program.  If not, see
  * `http://www.gnu.org/licenses/'.
  */
+#include "config.h"
+
 #include <string.h>
 #include <stdio.h>
 #include <sys/errno.h>
@@ -26,7 +28,6 @@
 #include <assert.h>
 #include <arpa/inet.h> // for ntohl
 
-#include "config.h"
 #include "timing.h"
 #include "filtration.h"
 #include "xmalloc.h"
