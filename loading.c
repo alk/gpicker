@@ -15,7 +15,9 @@
  * along with this program.  If not, see
  * `http://www.gnu.org/licenses/'.
  */
+#ifndef NO_CONFIG
 #include "config.h"
+#endif
 
 #include <string.h>
 #include <stdio.h>
@@ -158,6 +160,7 @@ void read_filenames_abort(void)
 	reading_aborted = 1;
 }
 
+#ifndef NO_CONFIG
 static
 void read_all(int fd, char *data, int size)
 {
@@ -265,3 +268,4 @@ void read_filenames_from_mlocate_db(int fd)
 		finish_timing(start, "initial qsort");
 	}
 }
+#endif /* NO_CONFIG */
