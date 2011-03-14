@@ -340,7 +340,7 @@ int my_popen(char *string, GPid *child_pid)
 	gboolean ok = g_spawn_async_with_pipes(0, // work dir
 					       argv,
 					       0, //envp
-					       0, // flags
+					       (GSpawnFlags) 0, // flags
 					       0, 0, //child setup & user data
 					       child_pid,
 					       0, // stdin
