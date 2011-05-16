@@ -48,7 +48,6 @@
 ;;; Code
 
 (require 'ffap)
-(require 'cl)
 
 (defvar *gpicker-path* "gpicker")
 (defvar *gpicker-simple-path* nil)
@@ -199,7 +198,7 @@
       (dolist (name list)
         (princ name)
         (princ "\0"))))
-  (unwind-protect (let ((rv (gpicker-grab-stdout *gpicker-path* "-l"
+  (unwind-protect (let ((rv (gpicker-grab-stdout *gpicker-path* "-l" "-d" "\01"
                                                  "--init-filter" (or init-filter (ffap-string-at-point))
                                                  "-")))
                     (and rv
