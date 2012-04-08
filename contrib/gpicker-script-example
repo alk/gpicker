@@ -2,11 +2,7 @@
 
 Dir.chdir(File.dirname(__FILE__))
 
-ARGV.pop
-
 dirs = Dir["*"].select {|item| File.directory?(item)}
-
-gpicker = IO.popen("gpicker #{ARGV.join(' ')} -", "w")
 
 dirs.delete("ns_server")
 dirs << "../ns_server"
@@ -20,14 +16,10 @@ dirs.each do |d|
           end
     IO.popen(cmd, "r") do |r|
       r.each_line("\0") do |l|
-        gpicker.print d
-        gpicker.print "/"
-        gpicker.print l
+        print d
+        print "/"
+        print l
       end
     end
   end
 end
-
-gpicker.close_write
-
-Process.waitall

@@ -377,6 +377,8 @@ gpointer setup_filenames_core(gpointer _dummy,
 		if (!find_command)
 			find_command = FIND_INVOCATION;
 		pipe = my_popen(find_command, &child_pid);
+	} else if (!strcmp(project_type, "script")) {
+		pipe = my_popen("./.gpicker-script", &child_pid);
 	} else if (!strcmp(project_type, "git"))
 		pipe = my_popen("git ls-files --exclude-standard -c -o -z .", &child_pid);
 	else if (!strcmp(project_type, "hg"))
@@ -539,6 +541,17 @@ int check_parents(char* name)
 }
 
 static
+int detect_project_type_script(void)
+{
+	struct stat st;
+	int rv = stat(".gpicker-script", &st);
+	/* NOTE: I was considering checking if script is executable
+	 * but decided that guess semantics shouldn't bother with
+	 * it. It provides better error reporting. */
+	return (rv == 0 && S_ISREG(st.st_mode));
+}
+
+static
 void enter_project_dir()
 {
 	int rv = chdir(project_dir);
@@ -549,7 +562,9 @@ void enter_project_dir()
 	}
 
 	if (project_type && !strcmp(project_type, "guess")) {
-		if (check_parents(".git"))
+		if (detect_project_type_script())
+			project_type = "script";
+		else if (check_parents(".git"))
 			project_type = "git";
 		else if (!disable_hg && check_parents(".hg"))
 			project_type = "hg";
@@ -614,11 +629,12 @@ void parse_options(int argc, char **argv)
 		exit(1);
 	}
 	if (project_type && strcmp(project_type, "guess") &&
-			strcmp(project_type, "git") &&
-			strcmp(project_type, "hg") &&
-			strcmp(project_type, "bzr") &&
-			strcmp(project_type, "default") &&
-			strcmp(project_type, "mlocate")) {
+	    strcmp(project_type, "git") &&
+	    strcmp(project_type, "hg") &&
+	    strcmp(project_type, "bzr") &&
+	    strcmp(project_type, "default") &&
+	    strcmp(project_type, "script") &&
+	    strcmp(project_type, "mlocate")) {
 		fprintf(stderr, "Unknown project type specified: %s\n", project_type);
 		exit(1);
 	}
