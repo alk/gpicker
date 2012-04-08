@@ -100,12 +100,21 @@
         (gpicker-delete-file *gpicker-buffers-list*)))))
 
 (defun gpicker-pick (dir)
+  (if (equal *gpicker-project-type* "script")
+      (gpicker-pick-with-runner dir)
+    (do-gpicker-pick dir)))
+
+(defun gpicker-pick-with-runner (dir)
+  (let* ((*gpicker-path* (expand-file-name ".gpicker-runner" dir))
+         (*gpicker-project-type* nil))
+    (do-gpicker-pick dir)))
+
+(defun do-gpicker-pick (dir)
   (unless *gpicker-project-dir*
     (error "visit gpicker project via 'gpicker-visit-project first!"))
   (let ((gpicker-args (append *gpicker-extra-args*
-                               (list "-t"
-                                     (or *gpicker-project-type* "default")
-                                     dir)))
+                              (and *gpicker-project-type* (list "-t" *gpicker-project-type*))
+                              (list dir)))
         (at-point (ffap-string-at-point)))
     (when (and at-point
                (> (string-bytes at-point) 0))
@@ -129,7 +138,7 @@
 (defun gpicker-set-project-type (type)
   "Sets type of current gpicker project"
   (interactive (list (completing-read "Choose gpicker project type: "
-                                      '("guess" "git" "hg"
+                                      '("guess" "script" "git" "hg"
                                         "bzr" "default" "mlocate")
                                       nil t nil nil "guess")))
   (setq *gpicker-project-type* type))
