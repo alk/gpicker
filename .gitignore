@@ -13,6 +13,7 @@
 /config.sub
 /configure.ac
 /debian/changelog
+/gpicker.elc
 Makefile
 Makefile.in
 aclocal.m4
