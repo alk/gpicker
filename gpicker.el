@@ -173,34 +173,40 @@
 
 ;;; ido integration
 
-(defvar *gpicker-hook-ido* t
-  "*Use gpicker for filtering ido results")
+(defvar *gpicker-want-ido* nil
+  "If ido integration is needed")
 
-(defadvice ido-set-matches-1 (around gpicker-ido-set-matches-1 activate)
-  "Choose between the regular ido-set-matches-1 and gpicker-my-ido-match"
-  (if *gpicker-hook-ido*
-      (setq ad-return-value (gpicker-my-ido-match ido-text (ad-get-arg 0)))
-    ad-do-it))
+(when *gpicker-want-ido*
+  (defvar *gpicker-hook-ido* t
+    "Use gpicker for filtering ido results")
 
-(defun gpicker-ido-toggle ()
-  "Toggle gpicker-ido integration"
-  (interactive)
-  (setq *gpicker-hook-ido* (not *gpicker-hook-ido*)))
+  (defadvice ido-set-matches-1 (around gpicker-ido-set-matches-1 activate)
+    "Choose between the regular ido-set-matches-1 and gpicker-my-ido-match"
+    (if *gpicker-hook-ido*
+        (setq ad-return-value (gpicker-my-ido-match ido-text (ad-get-arg 0)))
+      ad-do-it))
 
-(defun gpicker-my-ido-match (str items)
-  (setq items (reverse items))
-  (with-temp-file *gpicker-buffers-list*
-    (let ((standard-output (current-buffer)))
-      (dolist (item items)
-        (princ item)
-        (princ "\0"))))
-  (let ((args (list "-n\\0" str)))
-    (when (or ido-rotate (string= str ""))
-      (push "-S" args)) ;; dont_sort
-    (let ((out (apply #'gpicker-grab-stdout
-                      (gpicker-get-simple-path)
-                      args)))
-      (split-string out "\0" t))))
+  (defun gpicker-ido-toggle ()
+    "Toggle gpicker-ido integration"
+    (interactive)
+    (setq *gpicker-hook-ido* (not *gpicker-hook-ido*)))
+
+  (defun gpicker-my-ido-match (str items)
+    (setq items (reverse items))
+    (with-temp-file *gpicker-buffers-list*
+      (let ((standard-output (current-buffer)))
+        (dolist (item items)
+          (princ item)
+          (princ "\0"))))
+    (let ((args (list "-n\\0" str)))
+      (when (or ido-rotate (string= str ""))
+        (push "-S" args)) ;; dont_sort
+      (let ((out (apply #'gpicker-grab-stdout
+                        (gpicker-get-simple-path)
+                        args)))
+        (split-string out "\0" t)))))
+
+;;; end of ido integration
 
 (defun gpicker-complete-list (list &optional init-filter)
   (with-temp-file *gpicker-buffers-list*
