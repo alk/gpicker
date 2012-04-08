@@ -340,7 +340,7 @@ int my_popen(char *string, GPid *child_pid)
 	gboolean ok = g_spawn_async_with_pipes(0, // work dir
 					       argv,
 					       0, //envp
-					       (GSpawnFlags) 0, // flags
+					       G_SPAWN_DO_NOT_REAP_CHILD, // flags
 					       0, 0, //child setup & user data
 					       child_pid,
 					       0, // stdin
@@ -358,8 +358,9 @@ gpointer setup_filenames_core(gpointer _dummy,
 {
 	int pipe = -1;
 
+	do_with_main_loop_init_complete(p);
+
 	if (project_type && !strcmp(project_type, "mlocate")) {
-		do_with_main_loop_init_complete(p);
 		int fd = open(project_dir, O_RDONLY);
 		if (fd < 0) {
 			perror("setup_filenames:open");
@@ -386,7 +387,6 @@ gpointer setup_filenames_core(gpointer _dummy,
 	else if (!strcmp(project_type, "bzr"))
 		pipe = my_popen("bzr ls -R --versioned --unknown --null", &child_pid);
 
-	do_with_main_loop_init_complete(p);
 
 	if (pipe < 0) {
 		perror("failed to spawn find");
@@ -395,11 +395,26 @@ gpointer setup_filenames_core(gpointer _dummy,
 
 	read_filenames(pipe);
 
-	if (child_pid) {
-		kill(child_pid, SIGINT);
-		child_pid = 0;
-	}
 	close(pipe);
+
+	if (child_pid) {
+		pid_t rv;
+		int child_status;
+		do {
+			rv = waitpid(child_pid, &child_status, 0);
+			if (rv < 0) {
+				if (errno == EINTR)
+					continue;
+				perror("waitpid");
+				exit(1);
+			}
+		} while (0);
+		child_pid = 0;
+		if (WIFEXITED(child_status) && (child_status = WEXITSTATUS(child_status)) != 0) {
+			fprintf(stderr, "child exited with bad status: %d\n", child_status);
+			exit(1);
+		}
+	}
 
 	return 0;
 }
