@@ -91,9 +91,9 @@
                           (buffer-string)
                         (message "%s exited with status %d" (car call-process-args) status)
                         (save-excursion
-                          (set-buffer "*Messages*")
-                          (goto-char (point-max))
-                          (insert-file-contents *gpicker-errors-log*))
+                          (with-current-buffer "*Messages*"
+                            (goto-char (point-max))
+                            (insert-file-contents *gpicker-errors-log*)))
                         nil))
       (progn
         (gpicker-delete-file *gpicker-errors-log*)
