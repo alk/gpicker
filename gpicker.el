@@ -50,6 +50,9 @@
 ;;
 ;; On most keyboards Super is a key with flag between Ctrl and Alt. On
 ;; mac keyboards it's Command key.
+;;
+;; Also check out gpicker-imenu and gpicker-isearch. As well
+;; https://github.com/alk/supermegadoc/blob/master/supermegadoc.el
 
 ;;; Code
 
