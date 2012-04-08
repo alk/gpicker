@@ -42,6 +42,12 @@
 ;;   (global-set-key [?\C-x ?4 8388710] 'gpicker-find-file-other-window)
 ;;   (global-set-key [?\C-x ?5 8388710] 'gpicker-find-file-other-frame)
 ;;
+;; or
+;;
+;;   (global-set-key (kbd "s-f") 'gpicker-find-file)
+;;   (global-set-key (kbd "C-x 4 s-f") 'gpicker-find-file-other-window)
+;;   (global-set-key (kbd "C-x 5 s-f") 'gpicker-find-file-other-frame)
+;;
 ;; On most keyboards Super is a key with flag between Ctrl and Alt. On
 ;; mac keyboards it's Command key.
 
