@@ -1,5 +1,5 @@
-# memrchr.m4 serial 9
-dnl Copyright (C) 2002-2003, 2005-2007, 2009-2010 Free Software Foundation,
+# memrchr.m4 serial 10
+dnl Copyright (C) 2002-2003, 2005-2007, 2009-2012 Free Software Foundation,
 dnl Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -16,10 +16,7 @@ AC_DEFUN([gl_FUNC_MEMRCHR],
     HAVE_DECL_MEMRCHR=0
   fi
 
-  AC_REPLACE_FUNCS([memrchr])
-  if test $ac_cv_func_memrchr = no; then
-    gl_PREREQ_MEMRCHR
-  fi
+  AC_CHECK_FUNCS([memrchr])
 ])
 
 # Prerequisites of lib/memrchr.c.
