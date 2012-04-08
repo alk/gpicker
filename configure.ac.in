@@ -34,7 +34,7 @@ if test "x$uname_res" = "xDarwin"; then
 fi
 
 AC_MSG_CHECKING([whether -m32 is required to link gtk])
-AC_LANG_CONFTEST(AC_LANG_CALL([],[gtk_main]))
+AC_LANG_CONFTEST([AC_LANG_CALL([],[gtk_main])])
 ac_func_search_save_LIBS=$LIBS
 ac_func_search_save_CFLAGS=$CFLAGS
 LIBS="$LIBS $gtk2_LIBS $glib2_LIBS $gthread_LIBS"
