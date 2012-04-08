@@ -53,6 +53,10 @@
 
 ;;; Code
 
+(eval-when-compile
+  (require 'cl))
+
+(require 'imenu)
 (require 'ffap)
 
 (defvar *gpicker-path* "gpicker")
