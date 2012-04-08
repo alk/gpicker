@@ -232,21 +232,33 @@
   (interactive)
   (find-tag (car (gpicker-complete-list (alk-obarray-to-list (tags-completion-table))))))
 
-(defun gpicker-imenu ()
+(defun gpicker-flatten-imenu (imenu-ilist &optional prefix)
+  (let* ((prefix (or prefix ""))
+         (list-of-lists (mapcar (lambda (pair)
+                                  (let* ((snd (cdr pair))
+                                         (item (car pair))
+                                         (name (concat prefix item)))
+                                    (if (listp snd)
+                                        ;; if pair's cdr is list then it's sublist
+                                        (gpicker-flatten-imenu snd (concat name "/"))
+                                      ;; else it's marker
+                                      (list (cons name snd)))))
+                                imenu-ilist)))
+    (apply #'append list-of-lists)))
+
+(defun gpicker-imenu (&optional init-filter)
   (interactive)
-  (require 'imenu)
-  (let* ((imenu-alist (imenu--make-index-alist))
-         (imenu (apply #'append
-                       (mapcar (lambda (pair)
-                                 (let ((val (cdr pair)))
-                                  (if (listp val)
-                                      nil ;; (mapcar #'car val)
-                                    (cons (car pair) nil))))
-                               imenu-alist)))
-         (selected (car (gpicker-complete-list imenu))))
-    (when selected
-      (imenu-default-goto-function selected (cdr (assoc selected imenu-alist)))
-      (recenter-top-bottom))))
+  (let ((result t))
+    (while (eq result t)
+      (let* ((raw-imenu-alist (imenu--make-index-alist))
+             (imenu-alist (gpicker-flatten-imenu raw-imenu-alist))
+             (selected (car (gpicker-complete-list (mapcar #'car imenu-alist) init-filter))))
+        (setq result (assoc selected imenu-alist))
+        (when (equal result imenu--rescan-item)
+          (imenu--cleanup)
+          (setq result t))))
+    (when result
+      (imenu result))))
 
 (defun gpicker-isearch ()
   (interactive)
