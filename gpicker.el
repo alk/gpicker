@@ -142,7 +142,7 @@
   (setq *gpicker-project-dir* (expand-file-name dir)))
 
 (defun gpicker-call-find-function (find-function original-file)
-  (let ((file (expand-file-name file *gpicker-project-dir*)))
+  (let ((file (expand-file-name original-file *gpicker-project-dir*)))
     (if (file-exists-p file)
         (let ((revert-without-query (list (regexp-quote (abbreviate-file-name file)))))
           (funcall find-function file))
