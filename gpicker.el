@@ -270,7 +270,8 @@
   (let ((rv (gpicker-grab-stdout *gpicker-path* "-IlP" "-d" "\\n" "-n" "\\n" "-")))
     (and (> (length rv) 0)
          (let ((line-num (1+ (string-to-number rv 10))))
-           (goto-line line-num)))))
+           (goto-char (point-min))
+           (forward-line (1- line-num))))))
 
 
 (provide 'gpicker)
