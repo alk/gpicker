@@ -15,7 +15,7 @@ AM_CPPFLAGS = -Ilib @EXTRA_CPPFLAGS@
 man_MANS = gpicker.1 gpicker-simple.1
 
 EXTRA_DIST = gpicker.el gpicker.vim IDEAS CodingStyle README.osx \
- Makefile.simple debian gpicker.1 gpicker-simple.1 m4/gnulib-cache.m4
+ Makefile.simple debian gpicker.1 gpicker-simple.1 m4/gnulib-cache.m4 contrib/gpicker-script-example
 
 # _SOURCES is only to fool automake not to search for gpicker-simple.c
 # Real build rule is simple 'ln'
