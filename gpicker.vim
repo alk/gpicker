@@ -1,4 +1,4 @@
-"    Copyright: This program is free software: you can redistribute it and/or 
+"    Copyright: This program is free software: you can redistribute it and/or
 "               modify it under the terms of the GNU General Public License as
 "               published by the Free Software Foundation; either version 3 of the
 "               License, or (at your option) any later version.
@@ -17,8 +17,8 @@
 "  Maintainers: Sergey Avseyev <sergey.avseyev@gmail.com>
 " Contributors:
 "
-" Release Date: August 17, 2010
-"      Version: 0.3
+" Release Date: May 12, 2012
+"      Version: 0.4
 "     Keywords: autocompletion
 "
 "      Install: Copy file into ~/.vim/plugin directory or put in .vimrc
@@ -29,14 +29,20 @@
 "
 "                 <Leader>mr - Opens the gpicker from directory of file.
 "                 <Leader>mg - Opens the gpicker from current directory.
-"                 <Leader>mb - Opens the gpicker to chose from list of 
-"                 current buffers.
+"                 <Leader>mf - The same as above, but don't guess SCM.
+"                 <Leader>mb - Opens the gpicker to chose from list of
+"                              current buffers.
+"                 <Leader>mm - Opens the gpicker feeding entries from
+"                              mlocate database (use g:gpicker_mlocate_db to
+"                              choose one, by default: "/var/lib/mlocate/mlocate.db")
 "
-"               You can also use the command:
+"               You can also use the commands correspondingly:
 "
-"                 ":GPickFile"
 "                 ":GPickFileFromHere"
+"                 ":GPickFile"
+"                 ":GPickFileDefault"
 "                 ":GPickBuffer"
+"                 ":GPickLocate"
 "
 
 " Exit quickly when already loaded.
@@ -44,20 +50,29 @@ if exists("g:loaded_gpicker") || executable("gpicker") == 0
   finish
 endif
 
-command GPickFile :call <SID>GPickFile(".", "guess")
-command GPickFileDefault :call <SID>GPickFile(".", "default")
-command GPickFileFromHere :call <SID>GPickFile(expand("%:h"), "guess")
-function! s:GPickFile(path, type)
+if exists("g:gpicker_mlocate_db") == 0
+  let g:gpicker_mlocate_db = "/var/lib/mlocate/mlocate.db"
+endif
+
+command GPickFile :call <SID>GPickFile("edit", resolve("."), "guess")
+command GPickFileDefault :call <SID>GPickFile("edit", resolve("."), "default")
+command GPickFileFromHere :call <SID>GPickFile("edit", expand("%:h"), "default")
+command GPickLocate :call <SID>GPickFile("edit", g:gpicker_mlocate_db, "mlocate")
+function! s:GPickFile(cmd, path, type)
   if empty(a:path)
     let l:path = "."
   else
     let l:path = a:path
   endif
   " select file via gpicker
-  let l:filename = l:path . "/" . system('gpicker -t ' . a:type . " " . shellescape(l:path))
+  if a:type == "mlocate"
+    let l:filename = system('gpicker --eat-prefix="" -t mlocate ' . shellescape(l:path))
+  else
+    let l:filename = l:path . "/" . system('gpicker -t ' . a:type . " " . shellescape(l:path))
+  endif
   if filereadable(l:filename)
     " open selected file
-    execute "edit " . escape(l:filename, ' ')
+    execute a:cmd . " " . escape(resolve(expand(l:filename)), ' ')
   endif
 endfunction
 
@@ -76,6 +91,7 @@ function! s:GPickBuffer()
   execute "buffer " . substitute(l:selected, '[u%#ah=+x-]\+\s\+\d\+$', '', '')
 endfunction
 
+nmap <silent> <leader>mm :GPickLocate<cr>
 nmap <silent> <leader>mg :GPickFile<cr>
 nmap <silent> <leader>mf :GPickFileDefault<cr>
 nmap <silent> <leader>mr :GPickFileFromHere<cr>
