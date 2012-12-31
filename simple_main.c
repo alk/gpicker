@@ -11,6 +11,7 @@
 #include "filtration.h"
 #include "vector.h"
 #include "xmalloc.h"
+#include "scorer.h"
 
 static
 char *pattern;
@@ -99,6 +100,7 @@ void parse_options(int argc, char **argv)
 int simple_main(int argc, char **argv)
 {
 	init_loading();
+	prepare_scorer();
 
 	parse_options(argc, argv);
 

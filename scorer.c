@@ -44,18 +44,40 @@ void ____empty_printf(char *format, ...)
 #define dprintf(...) ____empty_printf(__VA_ARGS__)
 #endif
 
+static
+int delimiter_p_full(char ch)
+{
+	return (ch == '.' || ch == '_' || ch == '/' || ch == '*' || ch == ' ' || ch == '\'' || ch == '"');
+}
+
+static
+char delimiter_table[256];
+
+static
+char tolower_table[256];
+
+void prepare_scorer(void)
+{
+	int i;
+	for (i = 0; i < 256; i++) {
+		char delimiter = delimiter_p_full(i);
+		delimiter_table[i] = delimiter;
+		tolower_table[i] = tolower(i);
+		if (i == '-')
+			tolower_table[i] = '_';
+	}
+}
+
 static inline
 int delimiter_p(char ch)
 {
-	return (ch == '.' || ch == '_' || ch == '/' || ch == '*' || ch == ' ' || ch == '\'' || ch == '"');
+	return delimiter_table[ch];
 }
 
 static inline
 char normalize_char(char ch, unsigned *is_delimiter)
 {
-	ch = tolower(ch);
-	if (ch == '-')
-		ch = '_';
+	ch = tolower_table[ch];
 	if (is_delimiter)
 		*is_delimiter = delimiter_p(ch);
 	return ch;

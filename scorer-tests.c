@@ -171,6 +171,8 @@ int main(void)
 	Suite *s = scorer_suite();
 	SRunner *sr = srunner_create(s);
 
+	prepare_scorer();
+
 	srunner_run_all(sr, CK_NORMAL);
 
 	number_failed = srunner_ntests_failed(sr);
