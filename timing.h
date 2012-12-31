@@ -4,16 +4,25 @@
 #if WITH_TIMING
 
 #include <time.h>
+#include <sys/time.h>
 #include <stdio.h>
 
+static
+long long gpicker_hrtime_micros()
+{
+	struct timeval tv;
+	gettimeofday(&tv, 0);
+	return tv.tv_sec * 1000000LL + tv.tv_usec;
+}
+
 typedef clock_t timing_t;
-#define start_timing() clock()
+#define start_timing() gpicker_hrtime_micros()
 
 static
 void finish_timing(clock_t start, char *info)
 {
-	clock_t ticks = clock() - start;
-	double msecs = ticks/(double)CLOCKS_PER_SEC*1000.0;
+	long long ticks = gpicker_hrtime_micros() - start;
+	double msecs = ticks/1000.0;
 	fprintf(stderr, "%s took %g msecs\n", info, msecs);
 }
 
