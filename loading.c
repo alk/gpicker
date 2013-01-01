@@ -57,12 +57,13 @@ void init_loading(void)
 }
 
 static
-void add_filename(char *p, int dirlength)
+void add_filename(char *p, int dirlength, int restlen)
 {
 	struct filename *last = vector_append(&files_vector);
 
 	last->p = p;
 	last->dirlength = dirlength;
+	last->restlen = restlen;
 }
 
 #define INIT_BUFSIZE (128*1024)
@@ -145,7 +146,7 @@ void read_filenames(int fd)
 		dirlength = rp ? rp - start : 0;
 #endif
 		p[-1] = 0;
-		add_filename(start, dirlength);
+		add_filename(start, dirlength, p - 1 - start - dirlength);
 	}
 
 	if (!dont_sort && !dont_sort_initial)
@@ -243,7 +244,7 @@ void read_filenames_from_mlocate_db(int fd)
 				char *dup = malloc(total_len+1);
 				memcpy(dup, read_buffer, total_len);
 				dup[total_len] = 0;
-				add_filename(dup, dirlength);
+				add_filename(dup, dirlength, total_len - dirlength);
 			}
 
 			p += p_len + 1;

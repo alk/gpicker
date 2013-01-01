@@ -206,7 +206,7 @@ int compare_filter_result(struct filter_result *a, struct filter_result *b)
 		return rv;
 	filea = files + a->index;
 	fileb = files + b->index;
-	rv = strlen(filea->p+filea->dirlength) - strlen(fileb->p+fileb->dirlength);
+	rv = filea->restlen - fileb->restlen;
 	if (rv)
 		return rv;
 	rv = b->first_dir_match_pos - a->first_dir_match_pos;

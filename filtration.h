@@ -6,6 +6,7 @@
 struct filename {
 	char *p;
 	int dirlength;
+	int restlen;
 };
 
 char filter_dir_separator;
