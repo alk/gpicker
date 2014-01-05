@@ -483,6 +483,18 @@ gboolean key_events_delegator(GtkWidget *w, GdkEventKey *e, gpointer dummy)
 }
 
 static
+gboolean on_move_cursor(GtkTreeView *view, GtkMovementStep step, gint arg2, gpointer user_data)
+{
+	GtkTreeSelection *sel;
+	GtkTreePath *path;
+	sel = gtk_tree_view_get_selection(view);
+	gtk_tree_view_get_cursor(view, &path, NULL);
+	gtk_tree_selection_select_path(sel, path);
+	gtk_tree_path_free(path);
+	return FALSE;
+}
+
+static
 void setup_signals(void)
 {
 	g_signal_connect(top_window, "destroy", G_CALLBACK(exit_program), 0);
@@ -490,6 +502,8 @@ void setup_signals(void)
 	g_signal_connect(name_entry, "activate", G_CALLBACK(choice_made), 0);
 	g_signal_connect(tree_view, "row-activated", G_CALLBACK(choice_made), 0);
 	g_signal_connect(name_entry, "changed", G_CALLBACK(on_entry_changed), 0);
+
+	g_signal_connect_after(tree_view, "move-cursor", G_CALLBACK(on_move_cursor), 0);
 
 	g_object_set(G_OBJECT(tree_view), "can-focus", FALSE, NULL);
 	g_signal_connect_after(name_entry, "key-press-event", G_CALLBACK(key_events_delegator), 0);
