@@ -2,7 +2,7 @@ Source: gpicker
 Section: utils
 Priority: extra
 Maintainer: Aliaksey Kandratsenka <alk@tut.by>
-Build-Depends: debhelper (>= 5), automake, pkg-config, libgtk2.0-dev (>= 2.8), libglib2.0-dev (>= 2.14)
+Build-Depends: debhelper (>= 5), pkg-config, libgtk2.0-dev (>= 2.8), libglib2.0-dev (>= 2.14)
 Standards-Version: 3.8.1
 Homepage: http://savannah.nongnu.org/projects/gpicker
 
