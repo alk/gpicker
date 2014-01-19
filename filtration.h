@@ -9,13 +9,13 @@ struct filename {
 	int restlen;
 };
 
-char filter_dir_separator;
+extern char filter_dir_separator;
 
-int dont_sort;
-int ignore_positions;
+extern int dont_sort;
+extern int ignore_positions;
 
 // vector of struct filter_result
-struct vector filtered;
+extern struct vector filtered;
 
 typedef void (*filter_destructor)(void *);
 typedef int (*filter_func)(struct filename *, const void *, struct filter_result *, unsigned *);
