@@ -2,6 +2,7 @@
 #define FILTRATION_H
 
 #include "scorer.h"
+#include "vector.h"
 
 struct filename {
 	char *p;
