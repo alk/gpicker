@@ -36,18 +36,18 @@ void	_assert_scores(char *file, int line, int expected_score, char *string, char
 	qry.pattern = pattern;
 	real_score = score_string(string, &qry, strlen(string), match);
 	if (real_score != expected_score) {
-		_fail_unless(0, file, line, 0, "scoring %s against pattern %s should score 0x%x, not 0x%x",
-			     string, pattern, expected_score, real_score,
-			     0);
+		_ck_assert_msg(0, file, line, 0, "scoring %s against pattern %s should score 0x%x, not 0x%x",
+			       string, pattern, expected_score, real_score,
+			       0);
 		return;
 	}
 	if (expected_match)
 		for (i=0;i<pat_len;i++)
 			if (expected_match[i] != match[i])
-				_fail_unless(0, file, line, 0,
-					     "match differs in pos %d. Expected %d, got %d",
-					     i, expected_match[i], match[i], 0);
-	_fail_unless(1, __FILE__, __LINE__, "cannot happen", 0);
+				_ck_assert_msg(0, file, line, 0,
+					       "match differs in pos %d. Expected %d, got %d",
+					       i, expected_match[i], match[i], 0);
+	_ck_assert_msg(1, __FILE__, __LINE__, "cannot happen", 0);
 }
 
 #define assert_scores(score, string, pattern, match) _assert_scores(__FILE__, __LINE__, (score), (string), (pattern), (match))
