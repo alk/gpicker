@@ -71,13 +71,13 @@ void prepare_scorer(void)
 static inline
 int delimiter_p(char ch)
 {
-	return delimiter_table[ch];
+	return delimiter_table[(unsigned char)ch];
 }
 
 static inline
 char normalize_char(char ch, unsigned *is_delimiter)
 {
-	ch = tolower_table[ch];
+	ch = tolower_table[(unsigned char)ch];
 	if (is_delimiter)
 		*is_delimiter = delimiter_p(ch);
 	return ch;
