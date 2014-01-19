@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <libgen.h>
+#include <sys/wait.h>
 
 #if defined(__APPLE__) && defined(__MACH__)
 
