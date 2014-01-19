@@ -163,7 +163,7 @@ void cell_data_func(GtkTreeViewColumn *col,
 	if (text) {
 		const char *pattern = applied_pattern;
 		int patlen = strlen(pattern);
-		unsigned match[patlen];
+		unsigned match[patlen ? patlen : 1];
 		int passes;
 		int i;
 
