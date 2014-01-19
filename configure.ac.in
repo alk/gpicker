@@ -59,6 +59,22 @@ LIBS=$ac_func_search_save_LIBS
 CFLAGS=$ac_func_search_save_CFLAGS
 CPPFLAGS=$ac_func_search_save_CPPFLAGS
 
+AC_MSG_CHECKING([whether -fopenmp works])
+fopenmp_save_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -fopenmp"
+AC_LINK_IFELSE([AC_LANG_PROGRAM([],[
+#ifndef _OPENMP
+#error openmp does not work
+#endif
+])], [
+  OPENMP_CFLAGS=-fopenmp
+  AC_MSG_RESULT([yes])
+], [
+  AC_MSG_RESULT([no])
+])
+CFLAGS="$fopenmp_save_CFLAGS"
+AC_SUBST(OPENMP_CFLAGS)
+
 gl_INIT
 
 AC_OUTPUT
