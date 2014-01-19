@@ -46,4 +46,7 @@ int score_string_prepared(const char *string,
 			  const unsigned string_length,
 			  unsigned* match);
 
+void prepare_scorer(void);
+
+
 #endif
