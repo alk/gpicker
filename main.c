@@ -492,7 +492,7 @@ gboolean on_move_cursor(GtkTreeView *view, GtkMovementStep step, gint arg2, gpoi
 	gtk_tree_view_get_cursor(view, &path, NULL);
 	gtk_tree_selection_select_path(sel, path);
 	gtk_tree_path_free(path);
-	return FALSE;
+	return TRUE;
 }
 
 static
