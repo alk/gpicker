@@ -754,7 +754,6 @@ int main(int argc, char **argv)
 
 	timing_t tstart = start_timing();
 
-	g_thread_init(0);
 	parse_options(argc, argv); /* inits GTK+ too */
 
 	atexit(kill_child_pid);

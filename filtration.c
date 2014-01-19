@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -353,8 +354,8 @@ int obtain_match(const char *pattern, int files_index, unsigned *match)
 
 static struct refcounted_str *ft_pattern;
 static struct refcounted_str *ft_applied_pattern;
-static GMutex *ft_mutex;
-static GCond *ft_filtation_cond;
+static pthread_mutex_t ft_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t ft_filtation_cond = PTHREAD_COND_INITIALIZER;
 static unsigned ft_idle_pending;
 static void (*ft_callback)(char *);
 
@@ -362,29 +363,32 @@ static
 gpointer filtration_thread(gpointer);
 
 static
-GThread *filtration_thread_id;
+pthread_t filtration_thread_id;
+
+static gboolean filtration_inited;
 
 static void init_ft_state()
 {
-	if (ft_mutex)
+	int rv;
+	if (filtration_inited)
 		return;
-	ft_mutex = g_mutex_new();
-	ft_filtation_cond = g_cond_new();
-	filtration_thread_id = g_thread_create(filtration_thread, 0, 1, 0);
-	if (!filtration_thread_id) {
+	rv = pthread_create(&filtration_thread_id, NULL,
+			    filtration_thread, NULL);
+	if (rv) {
 		fputs("failed to create filtration thread\n", stderr);
 		abort();
 	}
+	filtration_inited = TRUE;
 }
 
 static
 gboolean filtration_idle(gpointer _pattern)
 {
-	g_mutex_lock(ft_mutex);
+	pthread_mutex_lock(&ft_mutex);
 	ft_callback(ft_applied_pattern->str);
 	refcounted_str_put(&ft_applied_pattern);
 	ft_idle_pending = 0;
-	g_mutex_unlock(ft_mutex);
+	pthread_mutex_unlock(&ft_mutex);
 	return FALSE;
 }
 
@@ -392,32 +396,32 @@ static volatile
 unsigned kill_filtration_thread;
 
 static
-gpointer filtration_thread(gpointer _dummy)
+void *filtration_thread(void *_dummy)
 {
 	struct refcounted_str *pattern;
-	g_mutex_lock(ft_mutex);
+	pthread_mutex_lock(&ft_mutex);
 
 again:
 	while (!ft_pattern && !kill_filtration_thread)
-		g_cond_wait(ft_filtation_cond, ft_mutex);
+		pthread_cond_wait(&ft_filtation_cond, &ft_mutex);
 
 	if (kill_filtration_thread) {
-		g_mutex_unlock(ft_mutex);
+		pthread_mutex_unlock(&ft_mutex);
 		return 0;
 	}
 
 	refcounted_str_get(&pattern, ft_pattern);
-	g_mutex_unlock(ft_mutex);
+	pthread_mutex_unlock(&ft_mutex);
 
 	timing_printf("filtration_thread: waked up for '%s'\n", pattern->str);
 
 	struct filter_result *rv = do_filter_files(pattern->str);
 
-	g_mutex_lock(ft_mutex);
+	pthread_mutex_lock(&ft_mutex);
 
 	if (kill_filtration_thread) {
 		refcounted_str_put(&pattern);
-		g_mutex_unlock(ft_mutex);
+		pthread_mutex_unlock(&ft_mutex);
 		return 0;
 	}
 
@@ -459,10 +463,10 @@ put_pattern:
 
 void uninit_filter(void)
 {
-	if (!ft_mutex)
+	if (!filtration_inited)
 		return;
 
-	g_mutex_lock(ft_mutex);
+	pthread_mutex_lock(&ft_mutex);
 
 	if (ft_pattern)
 		refcounted_str_put(&ft_pattern);
@@ -471,10 +475,10 @@ void uninit_filter(void)
 	ft_pattern = 0;
 	ft_callback = 0;
 
-	g_cond_broadcast(ft_filtation_cond);
-	g_mutex_unlock(ft_mutex);
+	pthread_cond_broadcast(&ft_filtation_cond);
+	pthread_mutex_unlock(&ft_mutex);
 
-	g_thread_join(filtration_thread_id);
+	pthread_join(filtration_thread_id, NULL);
 }
 
 #else // !WITH_GUI
@@ -497,15 +501,15 @@ void filter_files(char *pattern, void (*callback)(char *))
 {
 #ifndef NO_PARALLEL_FILTRATION
 	init_ft_state();
-	g_mutex_lock(ft_mutex);
+	pthread_mutex_lock(&ft_mutex);
 	if (ft_pattern) {
 		abort_filtration_request = 1;
 		refcounted_str_put(&ft_pattern);
 	}
 	ft_pattern = refcounted_str_dup(pattern);
 	ft_callback = callback;
-	g_cond_broadcast(ft_filtation_cond);
-	g_mutex_unlock(ft_mutex);
+	pthread_cond_broadcast(&ft_filtation_cond);
+	pthread_mutex_unlock(&ft_mutex);
 #else
 	filter_files_sync(pattern);
 	callback(pattern);

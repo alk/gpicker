@@ -17,6 +17,8 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
+#include <errno.h>
 #include "xmalloc.h"
 #include "do_with_main_loop.h"
 
@@ -27,8 +29,8 @@ struct do_with_main_loop_process {
 	gpointer rv;
 	int refcnt;
 
-	GMutex *mutex;
-	GCond *ready;
+	pthread_mutex_t mutex;
+	pthread_cond_t ready;
 };
 
 static
@@ -41,7 +43,7 @@ gboolean idle_func(gpointer _loop)
 }
 
 static
-void worker(gpointer _p)
+void *worker(void *_p)
 {
 	struct do_with_main_loop_process *p = _p;
 	p->rv = p->fn(p->data, p);
@@ -50,6 +52,7 @@ void worker(gpointer _p)
 	if (p->loop)
 		g_idle_add(idle_func, g_main_loop_ref(p->loop));
 	do_with_main_loop_close(p);
+	return NULL;
 }
 
 void do_with_main_loop_close(struct do_with_main_loop_process *p)
@@ -57,8 +60,6 @@ void do_with_main_loop_close(struct do_with_main_loop_process *p)
 	if (!g_atomic_int_dec_and_test(&p->refcnt))
 		return;
 
-	g_mutex_free(p->mutex);
-	g_cond_free(p->ready);
 	free(p);
 }
 
@@ -66,6 +67,8 @@ gpointer do_with_main_loop(do_with_main_loop_fn fn,
 			   gpointer data,
 			   struct do_with_main_loop_process **p_place)
 {
+	pthread_t thread;
+	int rv;
 	GMainLoop *loop = g_main_loop_new(0, FALSE);
 
 	struct do_with_main_loop_process *p = xmalloc(sizeof(struct do_with_main_loop_process));
@@ -74,32 +77,30 @@ gpointer do_with_main_loop(do_with_main_loop_fn fn,
 	p->data = data;
 	p->rv = 0;
 	p->refcnt = 1;
-	p->mutex = g_mutex_new();
-	p->ready = g_cond_new();
+	pthread_mutex_init(&p->mutex, NULL);
+	pthread_cond_init(&p->ready, NULL);
 
 	if (p_place) {
 		*p_place = p;
 		p->refcnt++;
 	}
 
-	void *rv = g_thread_create_full((GThreadFunc)worker,
-					p, // data
-					0, // stack size
-					FALSE, // joinable
-					TRUE, // kernel thread
-					G_THREAD_PRIORITY_NORMAL,
-					0); // *error
+	rv = pthread_create(&thread, NULL,
+			    worker, p);
 
-	if (!rv) {
-		perror("g_thread_create_full");
+	if (rv) {
+		errno = rv;
+		perror("pthread_create");
 		abort();
 	}
 
-	g_mutex_lock(p->mutex);
+	pthread_detach(thread);
+
+	pthread_mutex_lock(&p->mutex);
 	while (p->fn) {
-		g_cond_wait(p->ready, p->mutex);
+		pthread_cond_wait(&p->ready, &p->mutex);
 	}
-	g_mutex_unlock(p->mutex);
+	pthread_mutex_unlock(&p->mutex);
 
 	g_main_loop_run(loop);
 	g_main_loop_unref(loop);
@@ -109,10 +110,10 @@ gpointer do_with_main_loop(do_with_main_loop_fn fn,
 
 void do_with_main_loop_init_complete(struct do_with_main_loop_process *p)
 {
-	g_mutex_lock(p->mutex);
+	pthread_mutex_lock(&p->mutex);
 	p->fn = 0;
-	g_cond_broadcast(p->ready);
-	g_mutex_unlock(p->mutex);
+	pthread_cond_broadcast(&p->ready);
+	pthread_mutex_unlock(&p->mutex);
 }
 
 void do_with_main_loop_quit(struct do_with_main_loop_process *p)
