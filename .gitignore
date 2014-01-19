@@ -9,11 +9,13 @@
 /ID
 /INSTALL
 /TAGS
+/compile
 /config.guess
 /config.sub
 /configure.ac
 /debian/changelog
 /gpicker.elc
+/test-driver
 Makefile
 Makefile.in
 aclocal.m4
