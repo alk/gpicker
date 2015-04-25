@@ -256,7 +256,14 @@ void read_filenames_from_mlocate_db(int fd)
 	}
 
 	free(data);
-	finish_timing(start, "read_filenames_from_mlocate_db");
+#if WITH_TIMING
+	{
+		timing_t endtime = gpicker_hrtime_micros();
+		timing_printf("read_filenames_from_mlocate_db took %g msecs\n", (endtime - start) * 1E-3);
+		timing_printf("Loaded %d entries. %f per sec\n", files_vector.used,
+			      files_vector.used / ((endtime - start) * 1E-6));
+	}
+#endif
 
 	if (gpicker_load_stdin_too) {
 		read_filenames(0);
