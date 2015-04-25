@@ -35,6 +35,7 @@
 #include "xmalloc.h"
 #include "loading.h"
 #include "inline_qsort.h"
+#include "compiler.h"
 
 struct vector files_vector = {.eltsize = sizeof(struct filename)};
 
@@ -217,10 +218,35 @@ void cleanup_read_all(char *data, size_t size)
 }
 #endif
 
+struct chunky_alloc_arena {
+	char *place;
+	size_t remaining;
+};
+
+static
+void *arena_xmalloc(size_t size, struct chunky_alloc_arena *state)
+{
+	void *rv;
+	if (__builtin_expect(state->place == NULL || state->remaining < size, 0)) {
+		size_t alloc_size = 1024*1024;
+		if (size > alloc_size / 4) {
+			return xmalloc(size);
+		}
+		state->place = xmalloc(alloc_size);
+		state->remaining = alloc_size;
+	}
+	rv = state->place;
+	state->place += size;
+	state->remaining -= size;
+	return rv;
+}
+
+static
+void read_bunch(char *strings, char *end, int prefix_len);
+
 void read_filenames_from_mlocate_db(int fd)
 {
-	static char read_buffer[65536];
-
+	static int partitions[1024];
 	timing_t start;
 	struct stat st;
 	int rv = fstat(fd, &st);
@@ -239,7 +265,7 @@ void read_filenames_from_mlocate_db(int fd)
 	char *prefix = data + 0x10;
 	int prefix_len = strlen(prefix);
 	char *end = data + st.st_size;
-	char *strings = prefix + prefix_len + ntohl(*((uint32_t *)(data + 0x8))) + 0x11;
+	char *strings = prefix + prefix_len + ntohl(*((uint32_t *)(data + 0x8))) + 1;
 
 	if (prefix[prefix_len-2] == '/')
 		prefix_len--;
@@ -252,43 +278,7 @@ void read_filenames_from_mlocate_db(int fd)
 		}
 	}
 
-	while (strings < end) {
-		// dir name is in strings
-		int len = strlen(strings);
-		int read_buffer_len = strlen(strings + prefix_len);
-		char *used_prefix = strings + prefix_len;
-		if (prefix_len != 0 && *used_prefix == '/') {
-			used_prefix++;
-			read_buffer_len--;
-		}
-		memcpy(read_buffer, used_prefix, read_buffer_len);
-		if (read_buffer_len && read_buffer[read_buffer_len-1] != '/')
-			read_buffer[read_buffer_len++] = '/';
-
-		char *p = strings + len + 1;
-
-		while (p[0] == 1 || p[0] == 0) {
-			p++;
-			int p_len = strlen(p);
-
-			if (p[-1] == 0) {
-				memcpy(read_buffer+read_buffer_len, p, p_len);
-				int total_len = read_buffer_len + p_len;
-				char *last_slash = memrchr(read_buffer, '/', total_len);
-				int dirlength = last_slash ? last_slash + 1 - read_buffer : 0;
-				char *dup = malloc(total_len+1);
-				memcpy(dup, read_buffer, total_len);
-				dup[total_len] = 0;
-				add_filename(dup, dirlength, total_len - dirlength);
-			}
-
-			p += p_len + 1;
-		}
-
-		assert(p[0] == 2);
-
-		strings = p + 0x11;
-	}
+	read_bunch(strings, end, prefix_len);
 
 	cleanup_read_all(data, st.st_size);
 #if WITH_TIMING
@@ -311,4 +301,54 @@ void read_filenames_from_mlocate_db(int fd)
 		finish_timing(start, "initial qsort");
 	}
 }
+
+static
+void read_bunch(char *strings, char *end, int prefix_len)
+{
+	struct chunky_alloc_arena arena = {0};
+
+	strings += 0x10;
+
+	while (strings < end) {
+		// dir name is in strings
+		int read_buffer_len = strlen(strings + prefix_len);
+
+		char *p = strings + read_buffer_len + prefix_len + 1;
+
+		char *used_prefix = strings + prefix_len;
+		if (prefix_len != 0 && *used_prefix == '/') {
+			used_prefix++;
+			read_buffer_len--;
+		}
+
+		char ptype;
+		while (!((ptype = p[0]) & ~1)) {
+			p++;
+			int p_len = strlen(p);
+
+			if (ptype == 0) {
+				/* +1 for '\0' and +1 for '/' */
+				int total_len = read_buffer_len + p_len + 2;
+				char *dup = arena_xmalloc(total_len, &arena);
+				int len = read_buffer_len;
+				if (len) {
+					memcpy(dup, used_prefix, len);
+					if (__builtin_expect(used_prefix[len - 1] != '/', 0))
+						dup[len++] = '/';
+				}
+				memcpy(dup + len, p, p_len);
+				total_len = len + p_len;
+				dup[total_len] = 0;
+				add_filename(dup, len, total_len - read_buffer_len);
+			}
+
+			p += p_len + 1;
+		}
+
+		assert(ptype == 2);
+
+		strings = p + 0x11;
+	}
+}
+
 #endif /* NO_CONFIG */
