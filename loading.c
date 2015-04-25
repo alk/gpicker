@@ -162,10 +162,38 @@ void read_filenames_abort(void)
 }
 
 #ifndef NO_CONFIG
+
+/* #define READ_ALL_NOT_MMAP */
+#ifndef READ_ALL_NOT_MMAP
+#include <sys/mman.h>
+
 static
-void read_all(int fd, char *data, int size)
+char *read_all(int fd, size_t size)
+{
+	char *rv = mmap(0, size, PROT_READ,
+			MAP_SHARED|MAP_POPULATE, fd, 0);
+	if (rv == MAP_FAILED) {
+		perror("mmap");
+		abort();
+	}
+	return rv;
+}
+
+static
+void cleanup_read_all(char *data, size_t size)
+{
+	munmap(data, size);
+}
+
+#else /* MMAP */
+
+static
+char *read_all(int fd, size_t size)
 {
 	int readen;
+	char *data_start = xmalloc(size);
+	char *data = data_start;
+
 	while (size > 0) {
 		readen = read(fd, data, size);
 		if (readen < 0) {
@@ -179,7 +207,15 @@ void read_all(int fd, char *data, int size)
 		data += readen;
 		size -= readen;
 	}
+	return data_start;
 }
+
+static
+void cleanup_read_all(char *data, size_t size)
+{
+	free(data);
+}
+#endif
 
 void read_filenames_from_mlocate_db(int fd)
 {
@@ -197,8 +233,7 @@ void read_filenames_from_mlocate_db(int fd)
 		exit(1);
 	}
 
-	data = xmalloc(st.st_size);
-	read_all(fd, data, st.st_size);
+	data = read_all(fd, st.st_size);
 
 	/* see man 5 mlocate.db */
 	char *prefix = data + 0x10;
@@ -255,7 +290,7 @@ void read_filenames_from_mlocate_db(int fd)
 		strings = p + 0x11;
 	}
 
-	free(data);
+	cleanup_read_all(data, st.st_size);
 #if WITH_TIMING
 	{
 		timing_t endtime = gpicker_hrtime_micros();
