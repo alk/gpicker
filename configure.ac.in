@@ -21,7 +21,6 @@ AC_DEFINE([FIND_INVOCATION], ["find . '!' -wholename '*.git/*' -a '!' -wholename
 
 PKG_CHECK_MODULES([gtk2], [gtk+-2.0 >= 2.8])
 PKG_CHECK_MODULES([glib2], [glib-2.0 >= 2.14])
-PKG_CHECK_MODULES([gthread], [gthread-2.0])
 
 AC_DEFINE([WITH_GUI], 1, [GUI build])
 
@@ -37,7 +36,7 @@ AC_MSG_CHECKING([whether -m32 is required to link gtk])
 AC_LANG_CONFTEST([AC_LANG_CALL([],[gtk_main])])
 ac_func_search_save_LIBS=$LIBS
 ac_func_search_save_CFLAGS=$CFLAGS
-LIBS="$LIBS $gtk2_LIBS $glib2_LIBS $gthread_LIBS"
+LIBS="$LIBS $gtk2_LIBS $glib2_LIBS"
 AC_LINK_IFELSE([], [AC_MSG_RESULT([no])], [
   dnl link failed. Try -m32
   CFLAGS="-m32 $CFLAGS"
@@ -51,9 +50,9 @@ CFLAGS=$ac_func_search_save_CFLAGS
 ac_func_search_save_LIBS=$LIBS
 ac_func_search_save_CFLAGS=$CFLAGS
 ac_func_search_save_CPPLAGS=$CPPFLAGS
-CFLAGS="$gtk2_CFLAGS $glib2_CFLAGS $gthread_CFLAGS $CFLAGS"
-CPPFLAGS="$gtk2_CFLAGS $glib2_CFLAGS $gthread_CFLAGS $CPPFLAGS"
-LIBS="$LIBS $gtk2_LIBS $glib2_LIBS $gthread_LIBS"
+CFLAGS="$gtk2_CFLAGS $glib2_CFLAGS $CFLAGS"
+CPPFLAGS="$gtk2_CFLAGS $glib2_CFLAGS $CPPFLAGS"
+LIBS="$LIBS $gtk2_LIBS $glib2_LIBS"
 AC_CHECK_HEADER([gdk/gdkx.h], [AC_DEFINE([WITH_GDK_X11], 1, [GDK wraps X11])])
 LIBS=$ac_func_search_save_LIBS
 CFLAGS=$ac_func_search_save_CFLAGS
