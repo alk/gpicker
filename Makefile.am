@@ -20,7 +20,7 @@ EXTRA_DIST = gpicker.el gpicker.vim IDEAS CodingStyle README.osx \
 # _SOURCES is only to fool automake not to search for gpicker-simple.c
 # Real build rule is simple 'ln'
 gpicker_simple_SOURCES = simple_main.c
-gpicker-simple: gpicker
+gpicker-simple$(EXEEXT): gpicker
 	ln -f gpicker gpicker-simple
 
 if HAVE_CHECK
@@ -35,5 +35,5 @@ endif # HAVE_CHECK
 check-syntax:
 	$(COMPILE) -o /dev/null -S ${CHK_SOURCES}
 
-%.s : %.c
+.s.c:
 	$(COMPILE) -S -fverbose-asm -o $@ $<
