@@ -279,7 +279,7 @@ gboolean on_top_window_keypress(GtkWidget *_dummy,
 				GdkEventKey *event,
 				gpointer _dummy2)
 {
-	if (event->keyval == GDK_Escape) {
+	if (event->keyval == GDK_KEY_Escape) {
 		exit_program();
 		return TRUE;
 	}
@@ -688,12 +688,15 @@ void parse_options(int argc, char **argv)
 static
 void get_monitor_dimensions(unsigned *width, unsigned *height)
 {
-	GdkScreen *screen = gdk_display_get_default_screen(gdk_display_get_default());
-	int i = gdk_screen_get_n_monitors(screen);
+	GdkDisplay *display = gdk_display_get_default();
 	unsigned w = INT_MAX, h = INT_MAX;
-	while (--i >= 0) {
+	for (int i = 0; ; i++) {
+		GdkMonitor *monitor = gdk_display_get_monitor(display, i);
+		if (monitor == NULL) {
+			break;
+		}
 		GdkRectangle r;
-		gdk_screen_get_monitor_geometry(screen, i, &r);
+		gdk_monitor_get_geometry(monitor, &r);
 		w = (w > r.width) ? r.width : w;
 		h = (h > r.height) ? r.height : h;
 	}
@@ -711,7 +714,7 @@ void build_ui()
 	gtk_window_set_type_hint(top_window, GDK_WINDOW_TYPE_HINT_DIALOG);
 	gtk_window_set_title(top_window, "Loading filelist - gpicker");
 
-	vbox = GTK_BOX(gtk_vbox_new(FALSE, 3));
+	vbox = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 3));
 	gtk_container_set_border_width(GTK_CONTAINER(vbox), 3);
 	gtk_container_add(GTK_CONTAINER(top_window), GTK_WIDGET(vbox));
 
@@ -769,12 +772,19 @@ int main(int argc, char **argv)
 
 	gtk_widget_show_all(GTK_WIDGET(top_window));
 
+	GdkWindow* gdk_window = gtk_widget_get_window(GTK_WIDGET(top_window));
+
 #ifdef WITH_GDK_X11
-	// force our popup to be recent enough to display on top
-	GdkWindow *gdk_win = GTK_WIDGET(top_window)->window;
-	gdk_x11_window_set_user_time(gdk_win, gdk_x11_get_server_time(gdk_win));
+	if (G_OBJECT_TYPE(gdk_display_get_default()) == gdk_x11_display_get_type()) {
+		// force our popup to be recent enough to display on top
+		gdk_x11_window_set_user_time(gdk_window,
+					     gdk_x11_get_server_time(gdk_window));
+	}
 #endif
-	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, gdk_cursor_new(GDK_WATCH));
+
+	gdk_window_set_cursor(gdk_window,
+			      gdk_cursor_new_for_display(gdk_display_get_default(),
+							 GDK_WATCH));
 
 #if !defined(__APPLE__)
 	// OSX may benefit from this too, but I cannot test it yet.
@@ -804,7 +814,7 @@ int main(int argc, char **argv)
 					    GTK_SELECTION_MULTIPLE);
 	}
 
-	gdk_window_set_cursor(GTK_WIDGET(top_window)->window, 0);
+	gdk_window_set_cursor(gdk_window, 0);
 
 	if (!gtk_widget_is_focus(GTK_WIDGET(name_entry)))
 		gtk_widget_grab_focus(GTK_WIDGET(name_entry));

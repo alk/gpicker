@@ -8,8 +8,8 @@ gpicker_SOURCES = main.c scorer.c filtration.c vector.c xmalloc.c \
  loading.h loading.c \
  simple_main.c \
  filtration.h vector.h scorer.h xmalloc.h timing.h inline_qsort.h
-gpicker_LDADD = @gtk2_LIBS@ lib/libgnu.a
-AM_CFLAGS = @gtk2_CFLAGS@ @OPENMP_CFLAGS@
+gpicker_LDADD = @gtk3_LIBS@ lib/libgnu.a
+AM_CFLAGS = @gtk3_CFLAGS@ @OPENMP_CFLAGS@
 AM_CPPFLAGS = -Ilib @EXTRA_CPPFLAGS@
 
 man_MANS = gpicker.1 gpicker-simple.1

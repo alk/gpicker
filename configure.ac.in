@@ -19,7 +19,7 @@ AC_DEFINE([FIND_INVOCATION], ["find . '!' -wholename '*.git/*' -a '!' -wholename
 [ -a '!' -wholename '*.svn/*' -a '!' -wholename '*.bzr/*']dnl
 [ -a '!' -wholename '*CVS/*' -type f -follow -print0"], [Command line to fetch list of files])
 
-PKG_CHECK_MODULES([gtk2], [gtk+-2.0 >= 2.8])
+PKG_CHECK_MODULES([gtk3], [gtk+-3.0])
 PKG_CHECK_MODULES([glib2], [glib-2.0 >= 2.14])
 
 AC_DEFINE([WITH_GUI], 1, [GUI build])
@@ -29,19 +29,19 @@ AC_SUBST(EXTRA_CPPFLAGS)
 uname_res=`uname -s`
 if test "x$uname_res" = "xDarwin"; then
   EXTRA_CPPFLAGS=-xobjective-c
-  gtk2_LIBS="$gtk2_LIBS -framework Cocoa"
+  gtk3_LIBS="$gtk3_LIBS -framework Cocoa"
 fi
 
 AC_MSG_CHECKING([whether -m32 is required to link gtk])
 AC_LANG_CONFTEST([AC_LANG_CALL([],[gtk_main])])
 ac_func_search_save_LIBS=$LIBS
 ac_func_search_save_CFLAGS=$CFLAGS
-LIBS="$LIBS $gtk2_LIBS $glib2_LIBS"
+LIBS="$LIBS $gtk3_LIBS $glib2_LIBS"
 AC_LINK_IFELSE([], [AC_MSG_RESULT([no])], [
   dnl link failed. Try -m32
   CFLAGS="-m32 $CFLAGS"
-  AC_LINK_IFELSE([], [gtk2_CFLAGS="-m32 $gtk2_CFLAGS"],
-     [AC_MSG_ERROR([linking with gtk2 failed! Something is wrong.])])
+  AC_LINK_IFELSE([], [gtk3_CFLAGS="-m32 $gtk3_CFLAGS"],
+     [AC_MSG_ERROR([linking with gtk3 failed! Something is wrong.])])
   AC_MSG_RESULT([yes])
 ])
 LIBS=$ac_func_search_save_LIBS
@@ -50,9 +50,9 @@ CFLAGS=$ac_func_search_save_CFLAGS
 ac_func_search_save_LIBS=$LIBS
 ac_func_search_save_CFLAGS=$CFLAGS
 ac_func_search_save_CPPLAGS=$CPPFLAGS
-CFLAGS="$gtk2_CFLAGS $glib2_CFLAGS $CFLAGS"
-CPPFLAGS="$gtk2_CFLAGS $glib2_CFLAGS $CPPFLAGS"
-LIBS="$LIBS $gtk2_LIBS $glib2_LIBS"
+CFLAGS="$gtk3_CFLAGS $glib2_CFLAGS $CFLAGS"
+CPPFLAGS="$gtk3_CFLAGS $glib2_CFLAGS $CPPFLAGS"
+LIBS="$LIBS $gtk3_LIBS $glib2_LIBS"
 AC_CHECK_HEADER([gdk/gdkx.h], [AC_DEFINE([WITH_GDK_X11], 1, [GDK wraps X11])])
 LIBS=$ac_func_search_save_LIBS
 CFLAGS=$ac_func_search_save_CFLAGS
