@@ -1,9 +1,9 @@
-;;; gpicker.el --- gpicker integration for Emacs
+;;; gpicker.el --- gpicker integration for Emacs -- lexical-binding: t; --
 
-;; Copyright (C) 2008 Aliaksey Kandratsenka
+;; Copyright (C) 2008, 2026 Aliaksei Kandratsenka
 
-;; Author: Aliaksey Kandratsenka <alk@tut.by>
-;; Version: 1.0
+;; Author: Aliaksei Kandratsenka <alkondratenko@gmail.com>
+;; Version: 2.0
 ;; Keywords: autocompletion
 
 ;; This program is free software: you can redistribute it and/or
@@ -38,12 +38,6 @@
 ;; C-x 5 Super-f correspondingly. You can do same by adding the following
 ;; elisp snippet to your .emacs
 ;;
-;;   (global-set-key [8388710] 'gpicker-find-file)
-;;   (global-set-key [?\C-x ?4 8388710] 'gpicker-find-file-other-window)
-;;   (global-set-key [?\C-x ?5 8388710] 'gpicker-find-file-other-frame)
-;;
-;; or
-;;
 ;;   (global-set-key (kbd "s-f") 'gpicker-find-file)
 ;;   (global-set-key (kbd "C-x 4 s-f") 'gpicker-find-file-other-window)
 ;;   (global-set-key (kbd "C-x 5 s-f") 'gpicker-find-file-other-frame)
@@ -56,77 +50,85 @@
 
 ;;; Code
 
-(eval-when-compile
-  (require 'cl))
-
 (require 'imenu)
 (require 'ffap)
 
-(defvar *gpicker-path* "gpicker")
-(defvar *gpicker-simple-path* nil)
-(defvar *gpicker-extra-args* '("--disable-bzr" ;; bzr builtin file listing is just too slow
-                               "--load-stdin-too"
-                               "--multiselect"))
-(defvar *gpicker-project-dir* nil)
-(defvar *gpicker-project-type* "guess")
-(defvar *gpicker-errors-log* (expand-file-name "~/gpicker-errors.log"))
-(defvar *gpicker-buffers-list* (expand-file-name "~/gpicker-buffers-list"))
+(defvar gpicker-program "gpicker"
+  "The absolute directory path of the currently tracked project.")
 
-(defun gpicker-delete-file (path)
-  (condition-case e
-      (delete-file path)
-    (error nil)))
+(defvar gpicker-extra-args '("--disable-bzr" ;; bzr builtin file listing is just too slow
+                             "--load-stdin-too"
+                             "--multiselect"))
+(defvar gpicker-project-dir nil
+  "The absolute directory path of the currently tracked project.")
 
-(defun gpicker-get-simple-path ()
-  (or *gpicker-simple-path*
-      (concat *gpicker-path* "-simple")))
+(defvar gpicker-project-type "guess"
+  "The system backend used by gpicker to determine indexing rules (e.g., git, guess).")
 
-(defun gpicker-grab-stdout (&rest call-process-args)
-  (with-temp-buffer
-    (unwind-protect (let ((status (apply #'call-process
-                                         (car call-process-args)
-                                         (and (file-exists-p *gpicker-buffers-list*)
-                                              *gpicker-buffers-list*)
-                                         (list (current-buffer) *gpicker-errors-log*)
-                                         nil
-                                         (cdr call-process-args))))
-                      (if (eql status 0)
-                          (buffer-string)
-                        (message "%s exited with status %d" (car call-process-args) status)
-                        (save-excursion
-                          (with-current-buffer "*Messages*"
-                            (goto-char (point-max))
-                            (insert-file-contents *gpicker-errors-log*)))
-                        nil))
-      (progn
-        (gpicker-delete-file *gpicker-errors-log*)
-        (gpicker-delete-file *gpicker-buffers-list*)))))
+(defvar gpicker--saved-completing-read-function #'completing-read-default
+  "Internal reference used to restore the standard Emacs completion framework.")
+
+(defun gpicker--invoke (args &optional stdin-setter)
+  "Invoke `gpicker-program' with ARGS.
+If STDIN-SETTER is provided, invoke it to populate the stdin buffer.
+Returns stdout as a string on success, or nil on failure while appending stderr to *Messages*."
+  (let ((err-file (make-temp-file "gpicker-err-")))
+    (unwind-protect
+        (with-temp-buffer
+          (let ((stdout-buffer (current-buffer)))
+            (with-temp-buffer
+              (when stdin-setter
+                (funcall stdin-setter))
+              (let* ((destination (list stdout-buffer err-file))
+                     (status (apply #'call-process-region
+                                    (point-min) (point-max)
+                                    gpicker-program nil destination nil args)))
+                (if (eql status 0)
+                    (with-current-buffer stdout-buffer
+                      (buffer-string))
+                  (when (file-exists-p err-file)
+                    (let ((err-msg (with-temp-buffer
+                                     (insert-file-contents err-file)
+                                     (buffer-string))))
+                      (message "[gpicker] Process failed with status %S:\n%s" status err-msg)))
+                  nil)))))
+      (when (file-exists-p err-file)
+        (delete-file err-file)))))
 
 (defun gpicker-pick (dir)
-  (unless *gpicker-project-dir*
-    (error "visit gpicker project via 'gpicker-visit-project first!"))
-  (let ((gpicker-args (append *gpicker-extra-args*
-                              (and *gpicker-project-type* (list "-t" *gpicker-project-type*))
-                              (list dir)))
-        (at-point (ffap-string-at-point)))
-    (when (and at-point
-               (> (string-bytes at-point) 0))
-      (setq gpicker-args (list* "--init-filter" at-point gpicker-args)))
-    (with-temp-file *gpicker-buffers-list*
-      (let ((standard-output (current-buffer)))
-        (dolist (b (buffer-list))
-          (let ((name (buffer-name b)))
-            (unless (or (eq (current-buffer) b)
-                        (string= (substring name 0 1) " ")
-                        (buffer-file-name b))
-              (princ (buffer-name b))
-              (princ "\0"))))))
-    (unwind-protect (let ((rv (apply #'gpicker-grab-stdout
-                                     *gpicker-path*
-                                     gpicker-args)))
-                      (and rv
-                           (split-string rv "\0" t)))
-      (discard-input))))
+  "Run the interactive file selector on directory DIR."
+  (let* ((gpicker-args (append (list "--init-filter" (ffap-string-at-point))
+                               gpicker-extra-args
+                               (and gpicker-project-type (list "-t" gpicker-project-type))
+                               (list dir)))
+         (result (gpicker--invoke gpicker-args
+                                  (lambda ()
+                                    (dolist (b (buffer-list))
+                                      (let ((name (buffer-name b)))
+                                        (unless (or (eq (current-buffer) b)
+                                                    (string= (substring name 0 1) " ")
+                                                    (buffer-file-name b))
+                                          (insert name "\0"))))))))
+    (discard-input)
+    (and result (split-string result "\0" t))))
+
+
+(defun gpicker--select-index (list &optional init-filter)
+  "Run gpicker to select among the LIST of items. Returns index of selected item or nil"
+  (let* ((args (list "-l" "-d" "\01" "--output-index"
+                      "--init-filter" (or init-filter (ffap-string-at-point))
+                      "-"))
+         (result (gpicker--invoke args
+                                  (lambda ()
+                                    (dolist (e list)
+                                      (insert e "\0"))))))
+    (discard-input)
+    (and result (not (string-empty-p result)) (string-to-number result))))
+
+(defun gpicker-complete-list (list &optional init-filter)
+  "Run gpicker to select among the LIST of items. Returns selected item or nil"
+    (let ((idx (gpicker--select-index list init-filter)))
+    (and idx (nth idx list))))
 
 (defun gpicker-set-project-type (type)
   "Sets type of current gpicker project"
@@ -134,17 +136,17 @@
                                       '("guess" "script" "git" "hg"
                                         "bzr" "default" "mlocate")
                                       nil t nil nil "guess")))
-  (setq *gpicker-project-type* type))
+  (setq gpicker-project-type type))
 
 (defun gpicker-visit-project (dir)
   "Selects current project directory for gpicker"
   (interactive "DSelect directory:")
   (cd dir)
-  (setq *gpicker-project-type* "guess")
-  (setq *gpicker-project-dir* (expand-file-name dir)))
+  (setq gpicker-project-type "guess")
+  (setq gpicker-project-dir (expand-file-name dir)))
 
 (defun gpicker-call-find-function (find-function original-file)
-  (let ((file (expand-file-name original-file *gpicker-project-dir*)))
+  (let ((file (expand-file-name original-file gpicker-project-dir)))
     (if (file-exists-p file)
         (let ((revert-without-query (list (regexp-quote (abbreviate-file-name file)))))
           (funcall find-function file))
@@ -152,7 +154,10 @@
       (and b (display-buffer b))))))
 
 (defun gpicker-do-find (find-function)
-  (let ((files (gpicker-pick *gpicker-project-dir*)))
+  "Query current project directory and invoke FIND-FUNCTION on selected results."
+  (unless gpicker-project-dir
+    (error "visit gpicker project via 'gpicker-visit-project first!"))
+  (let ((files (gpicker-pick gpicker-project-dir)))
     (if (and (eql find-function #'find-file)
              (eql (length files) 2))
         (progn
@@ -162,77 +167,19 @@
         (gpicker-call-find-function find-function file)))))
 
 (defun gpicker-find-file ()
+  "Interactively look up project files and open in the current window."
   (interactive)
   (gpicker-do-find #'find-file))
 
 (defun gpicker-find-file-other-window ()
+  "Interactively look up project files and open in a new split."
   (interactive)
   (gpicker-do-find #'find-file-other-window))
 
 (defun gpicker-find-file-other-frame ()
+  "Interactively look up project files and open in a new desktop frame."
   (interactive)
   (gpicker-do-find #'find-file-other-frame))
-
-;;; ido integration
-
-(defvar *gpicker-want-ido* nil
-  "If ido integration is needed")
-
-(when *gpicker-want-ido*
-  (defvar *gpicker-hook-ido* t
-    "Use gpicker for filtering ido results")
-
-  (defadvice ido-set-matches-1 (around gpicker-ido-set-matches-1 activate)
-    "Choose between the regular ido-set-matches-1 and gpicker-my-ido-match"
-    (if *gpicker-hook-ido*
-        (setq ad-return-value (gpicker-my-ido-match ido-text (ad-get-arg 0)))
-      ad-do-it))
-
-  (defun gpicker-ido-toggle ()
-    "Toggle gpicker-ido integration"
-    (interactive)
-    (setq *gpicker-hook-ido* (not *gpicker-hook-ido*)))
-
-  (defun gpicker-my-ido-match (str items)
-    (setq items (reverse items))
-    (with-temp-file *gpicker-buffers-list*
-      (let ((standard-output (current-buffer)))
-        (dolist (item items)
-          (princ item)
-          (princ "\0"))))
-    (let ((args (list "-n\\0" str)))
-      (when (or ido-rotate (string= str ""))
-        (push "-S" args)) ;; dont_sort
-      (let ((out (apply #'gpicker-grab-stdout
-                        (gpicker-get-simple-path)
-                        args)))
-        (split-string out "\0" t)))))
-
-;;; end of ido integration
-
-(defun gpicker-complete-list (list &optional init-filter)
-  (with-temp-file *gpicker-buffers-list*
-    (let ((standard-output (current-buffer)))
-      (dolist (name list)
-        (princ name)
-        (princ "\0"))))
-  (unwind-protect (let ((rv (gpicker-grab-stdout *gpicker-path* "-l" "-d" "\01"
-                                                 "--init-filter" (or init-filter (ffap-string-at-point))
-                                                 "-")))
-                    (and rv
-                         (split-string rv "\0" t)))
-    (discard-input)))
-
-(defun alk-obarray-to-list (obarray)
-  (let ((rv))
-    (mapatoms (lambda (sym)
-                (setq rv (cons (symbol-name sym) rv)))
-              obarray)
-    rv))
-
-(defun gpicker-goto-tag ()
-  (interactive)
-  (find-tag (car (gpicker-complete-list (alk-obarray-to-list (tags-completion-table))))))
 
 (defun gpicker-flatten-imenu (imenu-ilist &optional prefix)
   (let* ((prefix (or prefix ""))
@@ -254,7 +201,7 @@
     (while (eq result t)
       (let* ((raw-imenu-alist (imenu--make-index-alist))
              (imenu-alist (gpicker-flatten-imenu raw-imenu-alist))
-             (selected (car (gpicker-complete-list (mapcar #'car imenu-alist) init-filter))))
+             (selected  (gpicker-complete-list (mapcar #'car imenu-alist) init-filter)))
         (setq result (assoc selected imenu-alist))
         (when (equal result imenu--rescan-item)
           (imenu--cleanup)
@@ -264,16 +211,43 @@
 
 (defun gpicker-isearch ()
   (interactive)
-  (let ((old-current-buffer (current-buffer)))
-    (with-temp-file *gpicker-buffers-list*
-      (let ((standard-output (current-buffer)))
-        (princ (with-current-buffer old-current-buffer
-                 (buffer-substring 1 (buffer-end 1)))))))
-  (let ((rv (gpicker-grab-stdout *gpicker-path* "-IlP" "-d" "\\n" "-n" "\\n" "-")))
-    (and (> (length rv) 0)
-         (let ((line-num (1+ (string-to-number rv 10))))
-           (goto-char (point-min))
-           (forward-line (1- line-num))))))
+  (let* ((buffer-content (buffer-substring-no-properties (point-min) (point-max)))
+         (args (list "-I" "-l" "-P" "-d" "\n" "-n" "\n" "-"))
+         (result (gpicker--invoke args
+                                  (lambda ()
+                                    (insert buffer-content))))
+         (line-num (and result (> (length result) 0) (string-to-number result 10))))
+    (when line-num
+      (goto-char (point-min))
+      (forward-line line-num))))
 
+(defun gpicker-completing-read (prompt collection &optional predicate require-match initial-input hist def inherit-input-method)
+  "Drop-in high-performance backend replacement for Emacs' completing-read-function'. Delegates options directly to gpicker', seamlessly resolving indices safely."
+  (let ((use-gpicker (and (eq def nil)
+                          (eq require-match t))))
+    (if use-gpicker
+        (let* ((candidates (all-completions "" collection predicate))
+               (init-str (cond ((stringp initial-input) initial-input)
+                               ((consp initial-input) (car initial-input))
+                               (t "")))
+               (idx (gpicker--select-index candidates init-str)))
+          (if idx
+              (nth idx candidates)
+            (keyboard-quit))) ; Gracefully abort Emacs action if user cancelled selection
+      ;; Fallback to standard Emacs completions
+      (let ((completing-read-function gpicker--saved-completing-read-function))
+        (completing-read prompt collection predicate require-match initial-input hist def inherit-input-method)))))
+
+(define-minor-mode gpicker-complete-mode
+  "Global minor mode to route Emacs completion dialogs through gpicker."
+  :global t
+  :group 'gpicker
+  (if gpicker-complete-mode
+      (progn
+        (setq gpicker--saved-completing-read-function completing-read-function)
+        (setq completing-read-function #'gpicker-completing-read)
+        (message "[GPicker] Completion wrapper initialized successfully"))
+    (setq completing-read-function gpicker--saved-completing-read-function)
+    (message "[GPicker] Restored original Emacs completion engine")))
 
 (provide 'gpicker)
